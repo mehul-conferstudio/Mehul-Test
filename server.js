@@ -205,7 +205,7 @@ app.post('/api/auth/request-otp', async (req, res) => {
 
   return res.status(200).json({
     message: result.message,
-    otp: process.env.NODE_ENV === 'development' && !sentRealEmail ? result.otp : undefined,
+    otp: result.showOtpInResponse && !sentRealEmail ? result.otp : undefined,
     emailSent: sentRealEmail,
     smsSent: sentRealSms,
     simulated: !sentRealEmail && !sentRealSms

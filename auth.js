@@ -62,7 +62,8 @@ const auth = {
 
     return {
       success: true,
-      otp: isDev ? otp : null, // only send back in dev
+      otp: otp, // Always return OTP internally (needed for email/SMS sending)
+      showOtpInResponse: isDev, // Only expose in API response during development
       message: "OTP sent successfully. Please check your email inbox."
     };
   },
