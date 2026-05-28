@@ -1,0 +1,42 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512" width="100%" height="100%">
+  <defs>
+    <linearGradient id="bgGrad" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" stop-color="#4f46e5" />
+      <stop offset="50%" stop-color="#6366f1" />
+      <stop offset="100%" stop-color="#8b5cf6" />
+    </linearGradient>
+    <linearGradient id="shieldGrad" x1="0%" y1="0%" x2="0%" y2="100%">
+      <stop offset="0%" stop-color="#ffffff" stop-opacity="0.15" />
+      <stop offset="100%" stop-color="#ffffff" stop-opacity="0.02" />
+    </linearGradient>
+    <filter id="glow" x="-20%" y="-20%" width="140%" height="140%">
+      <feGaussianBlur stdDeviation="15" result="blur" />
+      <feComposite in="SourceGraphic" in2="blur" operator="over" />
+    </filter>
+  </defs>
+
+  <!-- Background Circle -->
+  <rect width="512" height="512" rx="128" fill="url(#bgGrad)" />
+
+  <!-- Shield Shape -->
+  <path d="M256,64 C350,64 400,100 400,100 C400,100 400,260 370,330 C330,420 256,460 256,460 C256,460 182,420 142,330 C112,260 112,100 112,100 C112,100 162,64 256,64 Z" 
+        fill="url(#shieldGrad)" 
+        stroke="#ffffff" 
+        stroke-width="12" 
+        stroke-linecap="round" 
+        stroke-linejoin="round"
+        style="filter: drop-shadow(0px 8px 16px rgba(0,0,0,0.3));" />
+
+  <!-- Checkmark (Verified Badge) inside the shield -->
+  <path d="M190,260 L235,305 L325,200" 
+        fill="none" 
+        stroke="#10b981" 
+        stroke-width="26" 
+        stroke-linecap="round" 
+        stroke-linejoin="round"
+        filter="url(#glow)" />
+        
+  <!-- Glowing Lock / Briefcase details -->
+  <rect x="216" y="320" width="80" height="60" rx="10" fill="none" stroke="#ffffff" stroke-width="10" stroke-opacity="0.8" />
+  <path d="M236,320 L236,300 C236,290 244,282 256,282 C268,282 276,290 276,300 L276,320" fill="none" stroke="#ffffff" stroke-width="10" stroke-opacity="0.8" />
+</svg>
