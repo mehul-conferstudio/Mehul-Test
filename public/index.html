@@ -7,31 +7,33 @@
   
   <!-- SEO Meta Tags -->
   <meta name="description" content="Aggregated job searching across LinkedIn, Naukri, and Monster.com with trust verification score checking, response rate analytics, and scam protection.">
-  <meta name="theme-color" content="#4f46e5">
+  <meta name="theme-color" content="#1a73e8">
   
   <!-- Apple Web App Meta -->
   <meta name="apple-mobile-web-app-capable" content="yes">
-  <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+  <meta name="apple-mobile-web-app-status-bar-style" content="default">
   <meta name="apple-mobile-web-app-title" content="JobGuard">
   
   <!-- PWA Manifest -->
   <link rel="manifest" href="./manifest.json">
   <link rel="icon" type="image/svg+xml" href="./icon.svg">
   
-  <!-- Stylesheets -->
+  <!-- Google Fonts & Material Symbols (Gmail/Google look) -->
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Roboto:wght@300;400;500;700&family=Outfit:wght@400;500;600;700;800&family=Material+Symbols+Outlined:opsz,wght,FILL,GRAD@20..48,100..700,0..1,-50..200&display=swap" rel="stylesheet">
+  
   <link rel="stylesheet" href="./styles.css">
 </head>
 <body>
 
-  <!-- Phone Emulator Frame (Centers the PWA on Desktop, fits full-screen on Mobile) -->
+  <!-- App Main Wrapper -->
   <div class="phone-emulator">
     
     <!-- Simulated Mobile Push Notification (Dev Mode OTP Viewer) -->
     <div id="dev-otp-toast" class="dev-notification-toast">
       <div class="dev-notification-icon">
-        <svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="2.5">
-          <path stroke-linecap="round" stroke-linejoin="round" d="M21.75 6.75v10.5a2.25 2.25 0 0 1-2.25 2.25h-15a2.25 2.25 0 0 1-2.25-2.25V6.75m19.5 0A2.25 2.25 0 0 0 19.5 4.5h-15a2.25 2.25 0 0 0-2.25 2.25m19.5 0v.243a2.25 2.25 0 0 1-1.07 1.916l-7.5 4.615a2.25 2.25 0 0 1-2.36 0L3.32 8.91a2.25 2.25 0 0 1-1.07-1.916V6.75" />
-        </svg>
+        <span class="material-symbols-outlined">mail</span>
       </div>
       <div class="dev-notification-body">
         <div class="dev-notification-title">Verification Code (Simulated)</div>
@@ -41,104 +43,132 @@
       <button id="dev-otp-close" class="dev-notification-close">✕</button>
     </div>
 
-    <!-- Phone Bezel Header (Time, Notch, Battery status mockup) -->
+    <!-- Phone Bezel Header (Preserved tag name for styling compatibility; hidden in CSS desktop) -->
     <div class="phone-notch">
       <div id="phone-clock">14:15</div>
       <div class="notch-pill"></div>
       <div class="phone-status-icons">
-        <!-- Signal Strength -->
-        <svg viewBox="0 0 24 24" width="14" height="14" fill="currentColor">
-          <path d="M2 22h20V2L2 22z" />
-        </svg>
-        <!-- Wifi Icon -->
-        <svg viewBox="0 0 24 24" width="14" height="14" fill="currentColor">
-          <path d="M12 21l-12-12c4.4-4.4 11.6-4.4 16 0l-4 4c-2.2-2.2-5.8-2.2-8 0l8 8z" />
-        </svg>
-        <!-- Battery Icon -->
-        <svg viewBox="0 0 24 24" width="16" height="16" fill="currentColor">
-          <path d="M17 5H3a2 2 0 0 0-2 2v10a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2V7a2 2 0 0 0-2-2h-1zm2 10a1 1 0 0 1-1 1H4a1 1 0 0 1-1-1V9a1 1 0 0 1 1-1h14a1 1 0 0 1 1 1v6zM21 9h2v6h-2V9z" />
-        </svg>
+        <span class="material-symbols-outlined" style="font-size: 14px;">signal_cellular_alt</span>
+        <span class="material-symbols-outlined" style="font-size: 14px;">wifi</span>
+        <span class="material-symbols-outlined" style="font-size: 16px;">battery_full</span>
       </div>
     </div>
 
     <!-- ==========================================
-         WELCOME & AUTHENTICATION SCREENS
+         WELCOME / LANDING & AUTH SCREENS
          ========================================== -->
     <div id="welcome-screen" class="welcome-screen">
-      <div class="welcome-logo-container">
-        <!-- Embedded Logo SVG -->
-        <svg class="welcome-logo" viewBox="0 0 512 512" fill="none">
-          <rect width="512" height="512" rx="128" fill="url(#welcomeLogoGrad)" />
-          <path d="M256,80 C336,80 380,110 380,110 C380,110 380,240 350,300 C310,380 256,420 256,420 C256,420 202,380 162,300 C132,240 132,110 132,110 C132,110 176,80 256,80 Z" fill="rgba(255,255,255,0.08)" stroke="#ffffff" stroke-width="12" />
-          <path d="M190,250 L235,295 L325,190" fill="none" stroke="#10b981" stroke-width="26" stroke-linecap="round" stroke-linejoin="round" />
-          <linearGradient id="welcomeLogoGrad" x1="0%" y1="0%" x2="100%" y2="100%">
-            <stop offset="0%" stop-color="#4f46e5" />
-            <stop offset="100%" stop-color="#8b5cf6" />
-          </linearGradient>
-        </svg>
-        <h1 class="welcome-title">JobGuard</h1>
-        <p class="welcome-tagline">Aggregating job search with trust audits & candidate community protection.</p>
+      
+      <!-- 1. BENEFITS LANDING VIEW -->
+      <div id="landing-view" class="landing-view">
+        <header class="landing-header">
+          <div class="landing-logo">
+            <span class="material-symbols-outlined logo-icon">shield</span>
+            <span class="logo-text">JobGuard</span>
+          </div>
+          <button id="landing-login-btn" class="btn-google-text">Sign In</button>
+        </header>
+        
+        <main class="landing-hero">
+          <h1 class="hero-title">Job searching, audited for safety.</h1>
+          <p class="hero-desc">Compare jobs across LinkedIn, Naukri, and Monster. Protected by verified domains and crowdsourced scam detection.</p>
+          <button id="hero-get-started-btn" class="btn-google-primary">Get Started</button>
+        </main>
+
+        <section class="landing-benefits">
+          <h2 class="section-title">Built to protect your career journey</h2>
+          <div class="benefits-grid">
+            <div class="benefit-card">
+              <span class="material-symbols-outlined benefit-icon text-blue">search</span>
+              <h3>Unified Feed</h3>
+              <p>View aggregated job feeds in a clean, standard dashboard without platform clutter.</p>
+            </div>
+            <div class="benefit-card">
+              <span class="material-symbols-outlined benefit-icon text-green">verified_user</span>
+              <h3>Domain Audit</h3>
+              <p>Instantly confirm recruiter details and match email domains with corporate registries.</p>
+            </div>
+            <div class="benefit-card">
+              <span class="material-symbols-outlined benefit-icon text-orange">campaign</span>
+              <h3>Scam Shield</h3>
+              <p>Real-time candidate reviews and warnings prevent deposit scam traps.</p>
+            </div>
+            <div class="benefit-card">
+              <span class="material-symbols-outlined benefit-icon text-purple">assignment_turned_in</span>
+              <h3>Application CRM</h3>
+              <p>Track your applications, interview states, and recruiter response timelines.</p>
+            </div>
+          </div>
+        </section>
       </div>
 
-      <div class="auth-form-card">
-        <!-- Unified Error Message Area -->
-        <div id="auth-error-banner" class="auth-error-msg"></div>
-
-        <!-- STATE 1: REGISTER VIEW -->
-        <div id="auth-register-view" class="auth-view">
-          <div style="text-align: center; margin-bottom: 4px;">
-            <span class="checklist-title">Create Account</span>
-          </div>
-          <div class="role-selector auth-role-select">
-            <button id="role-seeker-btn" class="role-btn active" onclick="setRole('seeker')">Job Seeker</button>
-            <button id="role-verifier-btn" class="role-btn" onclick="setRole('verifier')">Community Verifier</button>
-          </div>
-          <input type="text" id="register-name" class="login-input" placeholder="Full Name (e.g. Anukrati)" value="Anukrati">
-          <input type="email" id="register-email" class="login-input" placeholder="Email Address">
-          <input type="tel" id="register-phone" class="login-input" placeholder="Phone Number (e.g. +919876543210) [Optional]">
-          <button id="register-submit-btn" class="btn-primary">Register Account</button>
-          <div class="auth-link-wrap">
-            Already registered? <span id="auth-link-to-login" class="auth-link">Log In</span>
-          </div>
-        </div>
-
-        <!-- STATE 2: LOGIN VIEW -->
-        <div id="auth-login-view" class="auth-view hidden">
-          <div style="text-align: center; margin-bottom: 4px;">
-            <span class="checklist-title">Welcome Back</span>
-          </div>
-          <input type="email" id="login-email" class="login-input" placeholder="Enter your email">
-          <button id="login-submit-btn" class="btn-primary">Send Verification Code</button>
-          <div class="auth-link-wrap">
-            New to JobGuard? <span id="auth-link-to-register" class="auth-link">Sign Up</span>
-          </div>
-        </div>
-
-        <!-- STATE 3: OTP VERIFICATION VIEW -->
-        <div id="auth-verify-view" class="auth-view hidden">
-          <div style="text-align: center;">
-            <span class="checklist-title">Enter Verification Code</span>
-            <p class="scrape-desc" style="margin-top: 4px;">Code sent to <span id="otp-sent-target" style="color: #fff; font-weight: 700;">email</span></p>
-          </div>
+      <!-- 2. AUTH MODAL OVERLAY (Login/Registration Forms Popup) -->
+      <div id="auth-modal-overlay" class="auth-modal-overlay hidden">
+        <div class="auth-form-card">
+          <!-- Close button for modal -->
+          <button id="auth-modal-close" class="auth-modal-close-btn" aria-label="Close dialog">
+            <span class="material-symbols-outlined">close</span>
+          </button>
           
-          <!-- 6 Digit Code Grid -->
-          <div class="otp-inputs-row" id="otp-inputs-container">
-            <input type="text" class="otp-digit-input" maxlength="1" pattern="[0-9]" inputmode="numeric" data-index="0">
-            <input type="text" class="otp-digit-input" maxlength="1" pattern="[0-9]" inputmode="numeric" data-index="1">
-            <input type="text" class="otp-digit-input" maxlength="1" pattern="[0-9]" inputmode="numeric" data-index="2">
-            <input type="text" class="otp-digit-input" maxlength="1" pattern="[0-9]" inputmode="numeric" data-index="3">
-            <input type="text" class="otp-digit-input" maxlength="1" pattern="[0-9]" inputmode="numeric" data-index="4">
-            <input type="text" class="otp-digit-input" maxlength="1" pattern="[0-9]" inputmode="numeric" data-index="5">
+          <!-- Unified Error Message Area -->
+          <div id="auth-error-banner" class="auth-error-msg"></div>
+
+          <!-- STATE 1: REGISTER VIEW -->
+          <div id="auth-register-view" class="auth-view">
+            <div class="auth-form-header">
+              <span class="auth-form-title">Create Account</span>
+            </div>
+            <div class="role-selector auth-role-select">
+              <button id="role-seeker-btn" class="role-btn active" onclick="setRole('seeker')">Job Seeker</button>
+              <button id="role-verifier-btn" class="role-btn" onclick="setRole('verifier')">Community Verifier</button>
+            </div>
+            <input type="text" id="register-name" class="login-input" placeholder="Full Name" value="Anukrati">
+            <input type="email" id="register-email" class="login-input" placeholder="Email Address">
+            <input type="tel" id="register-phone" class="login-input" placeholder="Phone Number (e.g. +919876543210) [Optional]">
+            <button id="register-submit-btn" class="btn-google-primary-full">Register Account</button>
+            <div class="auth-link-wrap">
+              Already registered? <span id="auth-link-to-login" class="auth-link">Log In</span>
+            </div>
           </div>
 
-          <div class="otp-meta-row">
-            <span>Expires in: <strong id="otp-timer-label" class="otp-timer">03:00</strong></span>
-            <button id="otp-resend-btn" class="btn-resend-otp" disabled>Resend Code</button>
+          <!-- STATE 2: LOGIN VIEW -->
+          <div id="auth-login-view" class="auth-view hidden">
+            <div class="auth-form-header">
+              <span class="auth-form-title">Welcome Back</span>
+            </div>
+            <input type="email" id="login-email" class="login-input" placeholder="Enter your email">
+            <button id="login-submit-btn" class="btn-google-primary-full">Send Verification Code</button>
+            <div class="auth-link-wrap">
+              New to JobGuard? <span id="auth-link-to-register" class="auth-link">Sign Up</span>
+            </div>
           </div>
 
-          <button id="verify-submit-btn" class="btn-primary">Verify & Log In</button>
-          <div class="auth-link-wrap">
-            <span id="auth-link-verify-back" class="auth-link">← Back to Login</span>
+          <!-- STATE 3: OTP VERIFICATION VIEW -->
+          <div id="auth-verify-view" class="auth-view hidden">
+            <div class="auth-form-header">
+              <span class="auth-form-title">Enter Verification Code</span>
+              <p class="scrape-desc" style="margin-top: 4px;">Code sent to <span id="otp-sent-target" style="color: #1a73e8; font-weight: 700;">email</span></p>
+            </div>
+            
+            <!-- 6 Digit Code Grid -->
+            <div class="otp-inputs-row" id="otp-inputs-container">
+              <input type="text" class="otp-digit-input" maxlength="1" pattern="[0-9]" inputmode="numeric" data-index="0">
+              <input type="text" class="otp-digit-input" maxlength="1" pattern="[0-9]" inputmode="numeric" data-index="1">
+              <input type="text" class="otp-digit-input" maxlength="1" pattern="[0-9]" inputmode="numeric" data-index="2">
+              <input type="text" class="otp-digit-input" maxlength="1" pattern="[0-9]" inputmode="numeric" data-index="3">
+              <input type="text" class="otp-digit-input" maxlength="1" pattern="[0-9]" inputmode="numeric" data-index="4">
+              <input type="text" class="otp-digit-input" maxlength="1" pattern="[0-9]" inputmode="numeric" data-index="5">
+            </div>
+
+            <div class="otp-meta-row">
+              <span>Expires in: <strong id="otp-timer-label" class="otp-timer">03:00</strong></span>
+              <button id="otp-resend-btn" class="btn-resend-otp" disabled>Resend Code</button>
+            </div>
+
+            <button id="verify-submit-btn" class="btn-google-primary-full">Verify & Log In</button>
+            <div class="auth-link-wrap">
+              <span id="auth-link-verify-back" class="auth-link">← Back to Login</span>
+            </div>
           </div>
         </div>
       </div>
@@ -150,265 +180,261 @@
          ========================================== -->
     <div class="app-container">
       
-      <!-- Top Sticky App Header -->
+      <!-- Top App Header -->
       <header class="app-header">
         <div class="app-logo-area">
-          <svg class="header-logo" viewBox="0 0 512 512" fill="none">
-            <rect width="512" height="512" rx="128" fill="#4f46e5" />
-            <path d="M256,80 C336,80 380,110 380,110 C380,110 380,240 350,300 C310,380 256,420 256,420 C256,420 202,380 162,300 C132,240 132,110 132,110 C132,110 176,80 256,80 Z" fill="rgba(255,255,255,0.08)" stroke="#ffffff" stroke-width="12" />
-            <path d="M190,250 L235,295 L325,190" fill="none" stroke="#10b981" stroke-width="26" stroke-linecap="round" stroke-linejoin="round" />
-          </svg>
+          <span class="material-symbols-outlined logo-icon" style="color: #1a73e8; font-size: 24px;">shield</span>
           <span class="header-title">JobGuard</span>
         </div>
-        <div class="user-badge">
+        <div class="user-badge" id="logout-badge">
           <div id="header-avatar" class="user-avatar">A</div>
           <span id="header-points" class="user-points">120 pts</span>
         </div>
       </header>
 
-      <!-- View Containers -->
+      <!-- App Workspace Panel Container -->
+      <div class="app-workspace">
+        
+        <!-- App Navigation (Sidebar on Desktop, Bottom Bar on Mobile) -->
+        <nav class="app-navigation">
+          <button class="nav-item active" data-tab="feed-panel">
+            <span class="material-symbols-outlined nav-icon">search</span>
+            <span class="nav-label">Jobs Feed</span>
+          </button>
+          <button class="nav-item" data-tab="scrape-panel">
+            <span class="material-symbols-outlined nav-icon">link</span>
+            <span class="nav-label">Aggregator</span>
+          </button>
+          <button class="nav-item" data-tab="tracker-panel">
+            <span class="material-symbols-outlined nav-icon">assignment_turned_in</span>
+            <span class="nav-label">Tracker CRM</span>
+          </button>
+          <button class="nav-item" data-tab="ecosystem-panel">
+            <span class="material-symbols-outlined nav-icon">forum</span>
+            <span class="nav-label">Ecosystem</span>
+          </button>
+          <button class="nav-item" data-tab="verifier-panel">
+            <span class="material-symbols-outlined nav-icon">verified_user</span>
+            <span class="nav-label">Verifier Queue</span>
+          </button>
+        </nav>
 
-      <!-- 1. FEED PANEL (Job Aggregator) -->
-      <main id="feed-panel" class="view-panel active">
-        <!-- PWA Custom Install Prompt Banner -->
-        <div id="pwa-banner" class="pwa-install-banner">
-          <div class="pwa-banner-text">
-            <div class="pwa-banner-title">Install JobGuard App</div>
-            <div class="pwa-banner-desc">Save jobs, receive offline alerts.</div>
-          </div>
-          <div class="pwa-banner-btns">
-            <button id="pwa-btn-install" class="btn-banner-install">Install</button>
-            <button id="pwa-btn-close" class="btn-banner-close">✕</button>
-          </div>
-        </div>
-
-        <div class="screen-header">
-          <h2 class="screen-title">Aggregated Jobs</h2>
-          <p class="screen-desc">Scanned across LinkedIn, Naukri, and Monster.</p>
-        </div>
-
-        <!-- Search Bar and Toggle Filter Drawer -->
-        <div class="search-container">
-          <div class="search-box-row">
-            <div class="search-bar-wrap">
-              <svg fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2.5" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" />
-              </svg>
-              <input type="text" id="job-search-input" class="search-input" placeholder="Search title, skills or company...">
-            </div>
-            <button id="filter-drawer-btn" class="filter-toggle-btn" aria-label="Toggle filters">
-              <svg fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 6V4m0 2a2 2 0 100 4m0-4a2 2 0 110 4m-6 8a2 2 0 100-4m0 4a2 2 0 110-4m0 4v2m0-6V4m6 6v10m6-2a2 2 0 100-4m0 4a2 2 0 110-4m0 4v2m0-6V4" />
-              </svg>
-            </button>
-          </div>
-
-          <!-- Drawer Filters -->
-          <div id="filters-drawer" class="filters-drawer">
-            <div class="filter-group">
-              <span class="filter-label">Platform Origin</span>
-              <div class="filter-options">
-                <span class="chip selected" data-filter="platform" data-value="all">All</span>
-                <span class="chip" data-filter="platform" data-value="linkedin">LinkedIn</span>
-                <span class="chip" data-filter="platform" data-value="naukri">Naukri</span>
-                <span class="chip" data-filter="platform" data-value="monster">Monster</span>
-              </div>
-            </div>
-
-            <div class="filter-group">
-              <span class="filter-label">Trust Status</span>
-              <div class="filter-options">
-                <span class="chip selected" data-filter="status" data-value="all">All</span>
-                <span class="chip" data-filter="status" data-value="Verified Active">Verified</span>
-                <span class="chip" data-filter="status" data-value="Suspicious">Suspicious</span>
-                <span class="chip" data-filter="status" data-value="Flagged Fake">Flagged Scam</span>
-              </div>
-            </div>
-
-            <div class="filter-group">
-              <span class="filter-label">Location Type</span>
-              <div class="filter-options">
-                <span class="chip selected" data-filter="type" data-value="all">All</span>
-                <span class="chip" data-filter="type" data-value="remote">Remote</span>
-                <span class="chip" data-filter="type" data-value="hybrid">Hybrid</span>
-                <span class="chip" data-filter="type" data-value="onsite">Onsite</span>
-              </div>
-            </div>
-          </div>
-        </div>
-
-        <!-- Ecosystem Dashboard Stats Banner -->
-        <div class="stats-banner">
-          <div class="stat-item">
-            <span id="stat-active" class="stat-number">0</span>
-            <span class="stat-title">Active / Valid</span>
-          </div>
-          <div class="stat-item">
-            <span id="stat-suspicious" class="stat-number">0</span>
-            <span class="stat-title">Under Audit</span>
-          </div>
-          <div class="stat-item">
-            <span id="stat-scam" class="stat-number">0</span>
-            <span class="stat-title">Scams Caught</span>
-          </div>
-        </div>
-
-        <!-- Scrollable Jobs Feed -->
-        <div id="jobs-list" class="jobs-list">
-          <!-- Rendered dynamically -->
-        </div>
-      </main>
-
-      <!-- 2. SCRAPE PANEL (Crawler Simulator) -->
-      <main id="scrape-panel" class="view-panel">
-        <div class="screen-header">
-          <h2 class="screen-title">Link Aggregator</h2>
-          <p class="screen-desc">Import external jobs to verify company legitimacy.</p>
-        </div>
-
-        <div class="scrape-card">
-          <span class="scrape-title">Scan Job Postings</span>
-          <p class="scrape-desc">Paste a job posting URL from LinkedIn, Naukri, or Monster. Our parser will simulatedly scan domain records, recruiter profiles, and search for fake indicators.</p>
+        <!-- Dynamic Main Content View Panels -->
+        <div class="app-panels-viewport">
           
-          <input type="url" id="scrape-url-input" class="login-input" placeholder="https://linkedin.com/jobs/view/..." style="margin-bottom: 8px;">
-          <button id="scrape-submit-btn" class="btn-primary">Analyze Job URL</button>
-
-          <div class="scrape-examples">
-            <span class="filter-label">Try suspicious / safe sample URLs:</span>
-            <button class="example-link-btn" data-url="https://linkedin.com/jobs/view/99201-google-cloud-architect-hiring">Safe: google-cloud-architect.linkedin.com</button>
-            <button class="example-link-btn" data-url="https://naukri.com/jobs/data-entry-wfh-immediate-earning-12000">Scam: easy-typing-wfh-deposit.naukri.com</button>
-            <button class="example-link-btn" data-url="https://foundit.in/job/career-builder-pvt-ltd-management-trainee">Suspicious: career-builder-consultancy.foundit.in</button>
-          </div>
-        </div>
-
-        <!-- Scraping Progress (Hidden by default, shown while scanning) -->
-        <div id="scrape-progress" class="scrape-progress-wrap">
-          <div class="scrape-step" id="step-connect">
-            <svg fill="none" viewBox="0 0 24 24" stroke="currentColor" class="icon"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z" /></svg>
-            <span>Connecting to external platform API...</span>
-          </div>
-          <div class="scrape-step" id="step-extract">
-            <svg fill="none" viewBox="0 0 24 24" stroke="currentColor" class="icon"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z" /></svg>
-            <span>Extracting metadata & contact details...</span>
-          </div>
-          <div class="scrape-step" id="step-domain">
-            <svg fill="none" viewBox="0 0 24 24" stroke="currentColor" class="icon"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z" /></svg>
-            <span>Verifying corporate domain registry...</span>
-          </div>
-          <div class="scrape-step" id="step-heuristics">
-            <svg fill="none" viewBox="0 0 24 24" stroke="currentColor" class="icon"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z" /></svg>
-            <span>Running spam and fee-request heuristics...</span>
-          </div>
-        </div>
-      </main>
-
-      <!-- 3. TRACKER PANEL (Application CRM) -->
-      <main id="tracker-panel" class="view-panel">
-        <div class="screen-header">
-          <h2 class="screen-title">Application CRM</h2>
-          <p class="screen-desc">Keep logs of response rates and interview progress.</p>
-        </div>
-
-        <div class="tracker-status-selector">
-          <span class="tracker-tab active" data-tracker="Saved">Saved (0)</span>
-          <span class="tracker-tab" data-tracker="Applied">Applied (0)</span>
-          <span class="tracker-tab" data-tracker="Interviewing">Interviewing (0)</span>
-          <span class="tracker-tab" data-tracker="Offer">Offer (0)</span>
-          <span class="tracker-tab" data-tracker="Flagged">Scams Blocked (0)</span>
-        </div>
-
-        <div id="tracker-list" class="tracker-list">
-          <!-- Rendered dynamically or shows empty state -->
-        </div>
-      </main>
-
-      <!-- 4. ECOSYSTEM PANEL (Community Board) -->
-      <main id="ecosystem-panel" class="view-panel">
-        <div class="screen-header">
-          <h2 class="screen-title">Ecosystem Feed</h2>
-          <p class="screen-desc">Crowdsourced warnings, reviews, and verified guides.</p>
-        </div>
-
-        <div class="ecosystem-tabs">
-          <button class="ecosystem-tab-btn active" data-eco-tab="discussions">Discussions</button>
-          <button class="ecosystem-tab-btn" data-eco-tab="scam-feed">Live Scam Alerts</button>
-        </div>
-
-        <div id="ecosystem-content" class="community-section">
-          <!-- New Post Input Box -->
-          <div id="new-post-form" class="new-post-box">
-            <input type="text" id="post-title-input" class="login-input" placeholder="Title of your post..." style="padding: 8px 12px; margin-bottom: 0px; font-size: 0.8rem;">
-            <textarea id="post-content-input" class="new-post-input" placeholder="Describe the warning, recruiter review, or hiring process..."></textarea>
-            <div class="post-submit-row">
-              <select id="post-category-select" class="post-select">
-                <option value="General">General</option>
-                <option value="Scam Alerts">Scam Alerts</option>
-                <option value="Guides">Guides</option>
-                <option value="Recruiter Review">Recruiter Review</option>
-              </select>
-              <button id="post-submit-btn" class="btn-primary" style="width: auto; padding: 6px 16px; font-size: 0.8rem; border-radius: 8px;">Post</button>
+          <!-- 1. FEED PANEL (Job Aggregator) -->
+          <main id="feed-panel" class="view-panel active">
+            <!-- PWA Custom Install Prompt Banner -->
+            <div id="pwa-banner" class="pwa-install-banner">
+              <div class="pwa-banner-text">
+                <div class="pwa-banner-title">Install JobGuard App</div>
+                <div class="pwa-banner-desc">Save jobs, receive offline alerts.</div>
+              </div>
+              <div class="pwa-banner-btns">
+                <button id="pwa-btn-install" class="btn-banner-install">Install</button>
+                <button id="pwa-btn-close" class="btn-banner-close">✕</button>
+              </div>
             </div>
-          </div>
 
-          <!-- Alert feed banner -->
-          <div class="scam-alert-bar">
-            <svg fill="none" viewBox="0 0 24 24" stroke="currentColor">
-              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z" />
-            </svg>
-            <span>ALERT: Fake telegram liking agencies active. Do not submit safety deposits.</span>
-          </div>
+            <div class="screen-header">
+              <h2 class="screen-title">Aggregated Jobs</h2>
+              <p class="screen-desc">Scanned across LinkedIn, Naukri, and Monster.</p>
+            </div>
 
-          <div id="discussions-list" style="display: flex; flex-direction: column; gap: 12px;">
-            <!-- Rendered dynamically -->
-          </div>
+            <!-- Search Bar and Toggle Filter Drawer -->
+            <div class="search-container">
+              <div class="search-box-row">
+                <div class="search-bar-wrap">
+                  <span class="material-symbols-outlined search-bar-icon">search</span>
+                  <input type="text" id="job-search-input" class="search-input" placeholder="Search title, skills or company...">
+                </div>
+                <button id="filter-drawer-btn" class="filter-toggle-btn" aria-label="Toggle filters">
+                  <span class="material-symbols-outlined">filter_list</span>
+                </button>
+              </div>
+
+              <!-- Drawer Filters -->
+              <div id="filters-drawer" class="filters-drawer">
+                <div class="filter-group">
+                  <span class="filter-label">Platform Origin</span>
+                  <div class="filter-options">
+                    <span class="chip selected" data-filter="platform" data-value="all">All</span>
+                    <span class="chip" data-filter="platform" data-value="linkedin">LinkedIn</span>
+                    <span class="chip" data-filter="platform" data-value="naukri">Naukri</span>
+                    <span class="chip" data-filter="platform" data-value="monster">Monster</span>
+                  </div>
+                </div>
+
+                <div class="filter-group">
+                  <span class="filter-label">Trust Status</span>
+                  <div class="filter-options">
+                    <span class="chip selected" data-filter="status" data-value="all">All</span>
+                    <span class="chip" data-filter="status" data-value="Verified Active">Verified</span>
+                    <span class="chip" data-filter="status" data-value="Suspicious">Suspicious</span>
+                    <span class="chip" data-filter="status" data-value="Flagged Fake">Flagged Scam</span>
+                  </div>
+                </div>
+
+                <div class="filter-group">
+                  <span class="filter-label">Location Type</span>
+                  <div class="filter-options">
+                    <span class="chip selected" data-filter="type" data-value="all">All</span>
+                    <span class="chip" data-filter="type" data-value="remote">Remote</span>
+                    <span class="chip" data-filter="type" data-value="hybrid">Hybrid</span>
+                    <span class="chip" data-filter="type" data-value="onsite">Onsite</span>
+                  </div>
+                </div>
+              </div>
+            </div>
+
+            <!-- Ecosystem Dashboard Stats Banner -->
+            <div class="stats-banner">
+              <div class="stat-item">
+                <span id="stat-active" class="stat-number">0</span>
+                <span class="stat-title">Active / Valid</span>
+              </div>
+              <div class="stat-item">
+                <span id="stat-suspicious" class="stat-number">0</span>
+                <span class="stat-title">Under Audit</span>
+              </div>
+              <div class="stat-item">
+                <span id="stat-scam" class="stat-number">0</span>
+                <span class="stat-title">Scams Caught</span>
+              </div>
+            </div>
+
+            <!-- Scrollable Jobs Feed -->
+            <div id="jobs-list" class="jobs-list">
+              <!-- Rendered dynamically -->
+            </div>
+          </main>
+
+          <!-- 2. SCRAPE PANEL (Crawler Simulator) -->
+          <main id="scrape-panel" class="view-panel">
+            <div class="screen-header">
+              <h2 class="screen-title">Link Aggregator</h2>
+              <p class="screen-desc">Import external jobs to verify company legitimacy.</p>
+            </div>
+
+            <div class="scrape-card">
+              <span class="scrape-title">Scan Job Postings</span>
+              <p class="scrape-desc">Paste a job posting URL from LinkedIn, Naukri, or Monster. Our parser will scan domain records, recruiter profiles, and search for fake indicators.</p>
+              
+              <input type="url" id="scrape-url-input" class="login-input" placeholder="https://linkedin.com/jobs/view/..." style="margin-bottom: 8px;">
+              <button id="scrape-submit-btn" class="btn-google-primary-full">Analyze Job URL</button>
+
+              <div class="scrape-examples">
+                <span class="filter-label">Try suspicious / safe sample URLs:</span>
+                <button class="example-link-btn" data-url="https://linkedin.com/jobs/view/99201-google-cloud-architect-hiring">Safe: google-cloud-architect.linkedin.com</button>
+                <button class="example-link-btn" data-url="https://naukri.com/jobs/data-entry-wfh-immediate-earning-12000">Scam: easy-typing-wfh-deposit.naukri.com</button>
+                <button class="example-link-btn" data-url="https://foundit.in/job/career-builder-pvt-ltd-management-trainee">Suspicious: career-builder-consultancy.foundit.in</button>
+              </div>
+            </div>
+
+            <!-- Scraping Progress -->
+            <div id="scrape-progress" class="scrape-progress-wrap">
+              <div class="scrape-step" id="step-connect">
+                <span class="material-symbols-outlined icon">pending</span>
+                <span>Connecting to external platform API...</span>
+              </div>
+              <div class="scrape-step" id="step-extract">
+                <span class="material-symbols-outlined icon">pending</span>
+                <span>Extracting metadata & contact details...</span>
+              </div>
+              <div class="scrape-step" id="step-domain">
+                <span class="material-symbols-outlined icon">pending</span>
+                <span>Verifying corporate domain registry...</span>
+              </div>
+              <div class="scrape-step" id="step-heuristics">
+                <span class="material-symbols-outlined icon">pending</span>
+                <span>Running spam and fee-request heuristics...</span>
+              </div>
+            </div>
+          </main>
+
+          <!-- 3. TRACKER PANEL (Application CRM) -->
+          <main id="tracker-panel" class="view-panel">
+            <div class="screen-header">
+              <h2 class="screen-title">Application CRM</h2>
+              <p class="screen-desc">Keep logs of response rates and interview progress.</p>
+            </div>
+
+            <div class="tracker-status-selector">
+              <span class="tracker-tab active" data-tracker="Saved">Saved (0)</span>
+              <span class="tracker-tab" data-tracker="Applied">Applied (0)</span>
+              <span class="tracker-tab" data-tracker="Interviewing">Interviewing (0)</span>
+              <span class="tracker-tab" data-tracker="Offer">Offer (0)</span>
+              <span class="tracker-tab" data-tracker="Flagged">Scams Blocked (0)</span>
+            </div>
+
+            <div id="tracker-list" class="tracker-list">
+              <!-- Rendered dynamically or shows empty state -->
+            </div>
+          </main>
+
+          <!-- 4. ECOSYSTEM PANEL (Community Board) -->
+          <main id="ecosystem-panel" class="view-panel">
+            <div class="screen-header">
+              <h2 class="screen-title">Ecosystem Feed</h2>
+              <p class="screen-desc">Crowdsourced warnings, reviews, and verified guides.</p>
+            </div>
+
+            <div class="ecosystem-tabs">
+              <button class="ecosystem-tab-btn active" data-eco-tab="discussions">Discussions</button>
+              <button class="ecosystem-tab-btn" data-eco-tab="scam-feed">Live Scam Alerts</button>
+            </div>
+
+            <div id="ecosystem-content" class="community-section">
+              <!-- New Post Input Box -->
+              <div id="new-post-form" class="new-post-box">
+                <input type="text" id="post-title-input" class="login-input" placeholder="Title of your post..." style="padding: 8px 12px; margin-bottom: 0px; font-size: 0.8rem;">
+                <textarea id="post-content-input" class="new-post-input" placeholder="Describe the warning, recruiter review, or hiring process..."></textarea>
+                <div class="post-submit-row">
+                  <select id="post-category-select" class="post-select">
+                    <option value="General">General</option>
+                    <option value="Scam Alerts">Scam Alerts</option>
+                    <option value="Guides">Guides</option>
+                    <option value="Recruiter Review">Recruiter Review</option>
+                  </select>
+                  <button id="post-submit-btn" class="btn-google-primary" style="width: auto; padding: 6px 16px; font-size: 0.8rem; border-radius: 8px;">Post</button>
+                </div>
+              </div>
+
+              <!-- Alert feed banner -->
+              <div class="scam-alert-bar">
+                <span class="material-symbols-outlined text-red" style="font-size: 18px;">warning</span>
+                <span>ALERT: Fake telegram liking agencies active. Do not submit safety deposits.</span>
+              </div>
+
+              <div id="discussions-list" style="display: flex; flex-direction: column; gap: 12px;">
+                <!-- Rendered dynamically -->
+              </div>
+            </div>
+          </main>
+
+          <!-- 5. VERIFIER PANEL (Gamified Voting Hub) -->
+          <main id="verifier-panel" class="view-panel">
+            <div class="screen-header">
+              <h2 class="screen-title">Verification Center</h2>
+              <p class="screen-desc">Audit suspicious jobs. Vote to flag scam recruiters.</p>
+            </div>
+
+            <div class="verifier-header-card">
+              <span class="material-symbols-outlined" style="font-size: 32px; color: #10b981;">verified</span>
+              <div class="verifier-header-text">
+                <span class="verifier-header-title">Earn verification badges</span>
+                <span class="verifier-header-desc">Submit MCA registration documents, flag phishing sites, or review candidate contact timelines. Earn 15 points per audit!</span>
+              </div>
+            </div>
+
+            <div id="verifier-queue" style="display: flex; flex-direction: column; gap: 12px;">
+              <!-- Verification Queue Items Rendered Dynamically -->
+            </div>
+          </main>
+
         </div>
-      </main>
 
-      <!-- 5. VERIFIER PANEL (Gamified Voting Hub) -->
-      <main id="verifier-panel" class="view-panel">
-        <div class="screen-header">
-          <h2 class="screen-title">Verification Center</h2>
-          <p class="screen-desc">Audit suspicious jobs. Vote to flag scam recruiters.</p>
-        </div>
-
-        <div class="verifier-header-card">
-          <svg fill="none" viewBox="0 0 24 24" stroke="currentColor">
-            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12l2 2 4-4m5.618-4.016A11.955 11.955 0 0112 2.944a11.955 11.955 0 01-8.618 3.04A12.02 12.02 0 003 9c0 5.591 3.824 10.29 9 11.622 5.176-1.332 9-6.03 9-11.622 0-1.042-.133-2.052-.382-3.016z" />
-          </svg>
-          <div class="verifier-header-text">
-            <span class="verifier-header-title">Earn verification badges</span>
-            <span class="verifier-header-desc">Submit MCA registration documents, flag phishing sites, or review candidate contact timelines. Earn 15 points per audit!</span>
-          </div>
-        </div>
-
-        <div id="verifier-queue" style="display: flex; flex-direction: column; gap: 12px;">
-          <!-- Verification Queue Items Rendered Dynamically -->
-        </div>
-      </main>
-
-      <!-- Bottom Tab Navigation Menu -->
-      <nav class="bottom-nav">
-        <button class="nav-item active" data-tab="feed-panel">
-          <svg viewBox="0 0 24 24"><path d="M3 12l2-2m0 0l7-7 7 7M5 10v10a1 1 0 001 1h3m10-11l2 2m-2-2v10a1 1 0 01-1 1h-3m-6 0a1 1 0 001-1v-4a1 1 0 011-1h2a1 1 0 011 1v4a1 1 0 001 1m-6 0h6"/></svg>
-          Feed
-        </button>
-        <button class="nav-item" data-tab="scrape-panel">
-          <svg viewBox="0 0 24 24"><path d="M13.828 10.172a4 4 0 00-5.656 0l-4 4a4 4 0 105.656 5.656l1.102-1.101m-.758-4.899a4 4 0 005.656 0l4-4a4 4 0 00-5.656-5.656l-1.1 1.1"/></svg>
-          Aggregator
-        </button>
-        <button class="nav-item" data-tab="tracker-panel">
-          <svg viewBox="0 0 24 24"><path d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2m-6 9l2 2 4-4"/></svg>
-          Tracker
-        </button>
-        <button class="nav-item" data-tab="ecosystem-panel">
-          <svg viewBox="0 0 24 24"><path d="M17 8h2a2 2 0 012 2v6a2 2 0 01-2 2h-2v4l-4-4H9a1.994 1.994 0 01-1.414-.586m0 0L11 14h4a2 2 0 002-2V6a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2v4l.586-.586z"/></svg>
-          Ecosystem
-        </button>
-        <button class="nav-item" data-tab="verifier-panel">
-          <svg viewBox="0 0 24 24"><path d="M9 12l2 2 4-4M7.835 4.697a3.42 3.42 0 001.946-.806 3.42 3.42 0 014.438 0 3.42 3.42 0 001.946.806 3.42 3.42 0 013.138 3.138 3.42 3.42 0 00.806 1.946 3.42 3.42 0 010 4.438 3.42 3.42 0 00-.806 1.946 3.42 3.42 0 01-3.138 3.138 3.42 3.42 0 00-1.946.806 3.42 3.42 0 01-4.438 0 3.42 3.42 0 00-1.946-.806 3.42 3.42 0 01-3.138-3.138 3.42 3.42 0 00-.806-1.946 3.42 3.42 0 010-4.438 3.42 3.42 0 00.806-1.946 3.42 3.42 0 013.138-3.138z"/></svg>
-          Verifier
-        </button>
-      </nav>
+      </div>
 
     </div>
 
@@ -418,9 +444,7 @@
     <div id="job-details-view" class="details-view">
       <div class="details-header">
         <button id="details-back-btn" class="back-btn">
-          <svg fill="none" viewBox="0 0 24 24" stroke="currentColor">
-            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2.5" d="M15 19l-7-7 7-7" />
-          </svg>
+          <span class="material-symbols-outlined" style="font-size: 20px;">arrow_back</span>
           Back to list
         </button>
         <span id="detail-platform-tag" class="platform-badge platform-linkedin">LinkedIn</span>
@@ -434,17 +458,17 @@
         </div>
 
         <!-- Quick metadata -->
-        <div class="job-card-details" style="background: rgba(255,255,255,0.02); padding: 12px; border-radius: 12px;">
+        <div class="job-card-details" style="background: #f1f3f4; padding: 12px; border-radius: 12px;">
           <div class="detail-item">
-            <svg fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17.657 16.657L13.414 20.9a1.998 1.998 0 01-2.827 0l-4.244-4.243a8 8 0 1111.314 0z" /><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 11a3 3 0 11-6 0 3 3 0 016 0z" /></svg>
+            <span class="material-symbols-outlined" style="font-size: 16px;">location_on</span>
             <span id="detail-location">Bangalore</span>
           </div>
           <div class="detail-item">
-            <svg fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8c-1.657 0-3 .895-3 2s1.343 2 3 2 3 .895 3 2-1.343 2-3 2m0-8c1.11 0 2.08.402 2.599 1M12 8V7m0 1v8m0 0v1m0-1c-1.11 0-2.08-.402-2.599-1M21 12a9 9 0 11-18 0 9 9 0 0118 0z" /></svg>
+            <span class="material-symbols-outlined" style="font-size: 16px;">payments</span>
             <span id="detail-salary">₹12,00,000 / year</span>
           </div>
           <div class="detail-item">
-            <svg fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M21 13.255A23.931 23.931 0 0112 15c-3.183 0-6.22-.62-9-1.745M16 6V4a2 2 0 00-2-2h-4a2 2 0 00-2 2v2m4 6h.01M5 20h14a2 2 0 002-2V8a2 2 0 00-2-2H5a2 2 0 00-2 2v10a2 2 0 002 2z" /></svg>
+            <span class="material-symbols-outlined" style="font-size: 16px;">work</span>
             <span id="detail-type-exp">Onsite • 3-5 years</span>
           </div>
         </div>
@@ -463,7 +487,7 @@
                 <span id="val-domain">100%</span>
               </div>
               <div class="radar-bar-track">
-                <div id="val-domain-bar" class="radar-bar-fill" style="width: 100%; background: var(--color-verified);"></div>
+                <div id="val-domain-bar" class="radar-bar-fill" style="width: 100%; background: #10b981;"></div>
               </div>
             </div>
 
@@ -473,7 +497,7 @@
                 <span id="val-recruiter">90%</span>
               </div>
               <div class="radar-bar-track">
-                <div id="val-recruiter-bar" class="radar-bar-fill" style="width: 90%; background: var(--color-verified);"></div>
+                <div id="val-recruiter-bar" class="radar-bar-fill" style="width: 90%; background: #10b981;"></div>
               </div>
             </div>
 
@@ -483,7 +507,7 @@
                 <span id="val-community">80%</span>
               </div>
               <div class="radar-bar-track">
-                <div id="val-community-bar" class="radar-bar-fill" style="width: 80%; background: var(--color-verified);"></div>
+                <div id="val-community-bar" class="radar-bar-fill" style="width: 80%; background: #10b981;"></div>
               </div>
             </div>
           </div>
@@ -500,7 +524,7 @@
         <!-- Job Description -->
         <div style="display: flex; flex-direction: column; gap: 8px;">
           <span class="checklist-title">Job Description</span>
-          <p id="detail-desc" style="font-size: 0.8rem; color: var(--text-muted); line-height: 1.5; white-space: pre-line;">
+          <p id="detail-desc" style="font-size: 0.8rem; color: #5f6368; line-height: 1.5; white-space: pre-line;">
             Job Description details.
           </p>
         </div>
@@ -514,15 +538,15 @@
         </div>
       </div>
 
-      <!-- Footer Buttons for details -->
+      <!-- Footer Actions -->
       <footer class="detail-actions-panel">
-        <button id="detail-save-btn" class="btn-secondary">
-          <svg fill="none" viewBox="0 0 24 24" stroke="currentColor" style="width: 20px; height: 20px; vertical-align: middle;"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2.5" d="M5 5a2 2 0 012-2h10a2 2 0 012 2v16l-7-3.5L5 21V5z" /></svg>
+        <button id="detail-save-btn" class="btn-google-secondary" aria-label="Save Job">
+          <span class="material-symbols-outlined" style="font-size: 20px;">bookmark</span>
         </button>
-        <button id="detail-flag-btn" class="btn-secondary" style="border-color: var(--color-fake); color: var(--color-fake);">
+        <button id="detail-flag-btn" class="btn-google-secondary" style="border-color: #d93025; color: #d93025;">
           Flag Scam
         </button>
-        <button id="detail-apply-btn" class="btn-primary btn-apply">Apply Instantly</button>
+        <button id="detail-apply-btn" class="btn-google-primary btn-apply">Apply Instantly</button>
       </footer>
     </div>
 

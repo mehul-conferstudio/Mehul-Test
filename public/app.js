@@ -120,6 +120,8 @@ function handleLogout() {
   localStorage.removeItem('jg_auth_token');
   localStorage.removeItem('jg_user');
   document.getElementById('welcome-screen').classList.remove('hidden');
+  const authOverlay = document.getElementById('auth-modal-overlay');
+  if (authOverlay) authOverlay.classList.add('hidden');
   updateHeaderUser();
   
   // Show registration view by default
@@ -240,6 +242,33 @@ function setupAuth() {
   const verifyBackLink = document.getElementById('auth-link-verify-back');
   
   const errorBanner = document.getElementById('auth-error-banner');
+  
+  // Modal overlay logic for Landing Page
+  const authOverlay = document.getElementById('auth-modal-overlay');
+  const landingLoginBtn = document.getElementById('landing-login-btn');
+  const heroGetStartedBtn = document.getElementById('hero-get-started-btn');
+  const authModalClose = document.getElementById('auth-modal-close');
+
+  const showAuthModal = (view) => {
+    if (authOverlay) authOverlay.classList.remove('hidden');
+    if (view === 'login') {
+      toLoginLink.click();
+    } else {
+      toRegisterLink.click();
+    }
+  };
+
+  if (landingLoginBtn) {
+    landingLoginBtn.addEventListener('click', () => showAuthModal('login'));
+  }
+  if (heroGetStartedBtn) {
+    heroGetStartedBtn.addEventListener('click', () => showAuthModal('register'));
+  }
+  if (authModalClose) {
+    authModalClose.addEventListener('click', () => {
+      if (authOverlay) authOverlay.classList.add('hidden');
+    });
+  }
   
   // Inputs
   const regName = document.getElementById('register-name');
@@ -589,9 +618,7 @@ function renderJobsFeed() {
   if (filteredJobs.length === 0) {
     feedContainer.innerHTML = `
       <div class="empty-state">
-        <svg fill="none" viewBox="0 0 24 24" stroke="currentColor">
-          <path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="M9.172 16.172a4 4 0 015.656 0M9 10h.01M15 10h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
-        </svg>
+        <span class="material-symbols-outlined" style="font-size: 48px; color: var(--text-dark);">search_off</span>
         <span class="empty-state-text">No job postings found matching the filters.</span>
       </div>
     `;
@@ -618,11 +645,11 @@ function renderJobsFeed() {
       
       <div class="job-card-details">
         <div class="detail-item">
-          <svg fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17.657 16.657L13.414 20.9a1.998 1.998 0 01-2.827 0l-4.244-4.243a8 8 0 1111.314 0z" /></svg>
+          <span class="material-symbols-outlined" style="font-size: 16px;">location_on</span>
           <span>${escapeHTML(job.location)}</span>
         </div>
         <div class="detail-item">
-          <svg fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8c-1.657 0-3 .895-3 2s1.343 2 3 2 3 .895 3 2-1.343 2-3 2" /></svg>
+          <span class="material-symbols-outlined" style="font-size: 16px;">payments</span>
           <span>${escapeHTML(job.salary)}</span>
         </div>
       </div>
@@ -631,7 +658,7 @@ function renderJobsFeed() {
         <span class="time-stamp">Posted ${job.postedDate}</span>
         <div class="indicator-badges">
           <span class="badge-pill ${getResponseClass(job.responseTime)}">
-            <svg fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2.5" d="M13 10V3L4 14h7v7l9-11h-7z" /></svg>
+            <span class="material-symbols-outlined" style="font-size: 12px;">bolt</span>
             ${job.responseTime} Loop
           </span>
           <span class="badge-pill ${getTrustClass(job.status)}">
@@ -880,11 +907,9 @@ function openJobDetails(jobId) {
     const item = document.createElement('div');
     item.className = `checklist-item ${isPositive ? 'pass' : 'fail'}`;
     item.innerHTML = `
-      <svg fill="none" viewBox="0 0 24 24" stroke="currentColor">
-        ${isPositive 
-          ? '<path stroke-linecap="round" stroke-linejoin="round" stroke-width="2.5" d="M5 13l4 4L19 7" />' 
-          : '<path stroke-linecap="round" stroke-linejoin="round" stroke-width="2.5" d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z" />'}
-      </svg>
+      <span class="material-symbols-outlined" style="font-size: 16px; color: ${isPositive ? '#10b981' : '#f43f5e'}; margin-top: 1px;">
+        ${isPositive ? 'check_circle' : 'cancel'}
+      </span>
       <span>${escapeHTML(reason)}</span>
     `;
     trustList.appendChild(item);
@@ -1166,9 +1191,7 @@ function renderTrackerDashboard() {
   if (trackedItems.length === 0) {
     trackerList.innerHTML = `
       <div class="empty-state">
-        <svg fill="none" viewBox="0 0 24 24" stroke="currentColor">
-          <path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="M19 11H5m14 0a2 2 0 012 2v6a2 2 0 01-2 2H5a2 2 0 01-2-2v-6a2 2 0 012-2m14 0V9a2 2 0 00-2-2M5 11V9a2 2 0 012-2m0 0V5a2 2 0 012-2h6a2 2 0 012 2v2M7 7h10" />
-        </svg>
+        <span class="material-symbols-outlined" style="font-size: 48px; color: var(--text-dark);">assignment_late</span>
         <span class="empty-state-text">No jobs currently in the '${activeTrackerTab}' list. Move jobs here using the Job Details panel.</span>
       </div>
     `;
@@ -1190,11 +1213,11 @@ function renderTrackerDashboard() {
       <div class="tracker-controls" onclick="event.stopPropagation();">
         ${activeTrackerTab !== 'Offer' && activeTrackerTab !== 'Flagged' ? `
           <button class="control-btn" title="Advance Stage" onclick="advanceTrackerStage('${job.id}')">
-            <svg fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 5l7 7-7 7M5 5l7 7-7 7" /></svg>
+            <span class="material-symbols-outlined" style="font-size: 16px;">double_arrow</span>
           </button>
         ` : ''}
         <button class="control-btn" title="Delete" onclick="removeTracker('${job.id}')">
-          <svg fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" /></svg>
+          <span class="material-symbols-outlined" style="font-size: 16px;">delete</span>
         </button>
       </div>
     `;
@@ -1395,11 +1418,11 @@ function renderThreadCard(thread, targetContainer) {
       <span class="time-stamp">${thread.date}</span>
       <div class="post-actions">
         <button class="post-action-btn" onclick="upvotePost('${thread.id}')">
-          <svg fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2.5" d="M5 15l7-7 7 7" /></svg>
+          <span class="material-symbols-outlined" style="font-size: 16px; vertical-align: middle;">thumb_up</span>
           <span>${thread.upvotes}</span>
         </button>
         <button class="post-action-btn" onclick="toggleReplies('${thread.id}')">
-          <svg fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2.5" d="M8 12h.01M12 12h.01M16 12h.01M21 12c0 4.418-4.03 8-9 8a9.863 9.863 0 01-4.255-.949L3 20l1.395-3.72C3.512 15.042 3 13.574 3 12c0-4.418 4.03-8 9-8s9 3.582 9 8z" /></svg>
+          <span class="material-symbols-outlined" style="font-size: 16px; vertical-align: middle;">comment</span>
           <span>Replies (${thread.replies.length})</span>
         </button>
       </div>
@@ -1489,7 +1512,7 @@ function renderVerifierQueue() {
   if (auditJobs.length === 0) {
     queueContainer.innerHTML = `
       <div class="empty-state">
-        <svg fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2.5" d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z" /></svg>
+        <span class="material-symbols-outlined" style="font-size: 48px; color: var(--color-verified);">check_circle</span>
         <span class="empty-state-text">No jobs currently pending verification. Outstanding!</span>
       </div>
     `;
@@ -1515,11 +1538,11 @@ function renderVerifierQueue() {
 
       <div class="verify-vote-actions">
         <button class="btn-vote-active" onclick="castVote('${job.id}', 'active')">
-          <svg fill="none" viewBox="0 0 24 24" stroke="currentColor" style="width:14px; height:14px;"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2.5" d="M9 12l2 2 4-4" /></svg>
+          <span class="material-symbols-outlined" style="font-size: 14px; vertical-align: middle; margin-right: 4px;">check</span>
           Looks Active
         </button>
         <button class="btn-vote-fake" onclick="castVote('${job.id}', 'fake')">
-          <svg fill="none" viewBox="0 0 24 24" stroke="currentColor" style="width:14px; height:14px;"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2.5" d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4" /></svg>
+          <span class="material-symbols-outlined" style="font-size: 14px; vertical-align: middle; margin-right: 4px;">warning</span>
           Flag as Fake
         </button>
       </div>
