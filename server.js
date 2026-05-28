@@ -227,6 +227,75 @@ app.post('/api/auth/verify-otp', (req, res) => {
 });
 
 /* =========================================================================
+   ADMIN API ENDPOINTS (for managing deployed database)
+   ========================================================================= */
+
+// Simple admin key check - set ADMIN_KEY env var on Render to protect these endpoints
+function checkAdminKey(req, res, next) {
+  const adminKey = process.env.ADMIN_KEY;
+  // If ADMIN_KEY is not set, allow access (development convenience)
+  if (!adminKey) return next();
+  
+  const providedKey = req.query.key || req.headers['x-admin-key'];
+  if (providedKey !== adminKey) {
+    return res.status(403).json({ message: "Forbidden. Invalid admin key." });
+  }
+  next();
+}
+
+// GET /api/admin/users - List all registered users
+app.get('/api/admin/users', checkAdminKey, (req, res) => {
+  const data = JSON.parse(fs.readFileSync(path.join(__dirname, 'data', 'db.json'), 'utf8'));
+  return res.status(200).json({
+    count: data.users.length,
+    users: data.users.map(u => ({
+      email: u.email,
+      name: u.name,
+      role: u.role,
+      phone: u.phone,
+      createdAt: u.createdAt
+    }))
+  });
+});
+
+// DELETE /api/admin/users/:email - Delete a specific user by email
+app.delete('/api/admin/users/:email', checkAdminKey, (req, res) => {
+  const emailToDelete = decodeURIComponent(req.params.email).toLowerCase();
+  const dbPath = path.join(__dirname, 'data', 'db.json');
+  const data = JSON.parse(fs.readFileSync(dbPath, 'utf8'));
+  
+  const beforeCount = data.users.length;
+  data.users = data.users.filter(u => u.email.toLowerCase() !== emailToDelete);
+  // Also clean up any OTPs for this user
+  data.otps = data.otps.filter(o => o.email.toLowerCase() !== emailToDelete);
+  // Also clean up any applications for this user
+  data.applications = data.applications.filter(a => (a.userEmail || '').toLowerCase() !== emailToDelete);
+  
+  if (data.users.length === beforeCount) {
+    return res.status(404).json({ message: `User '${emailToDelete}' not found in database.` });
+  }
+  
+  fs.writeFileSync(dbPath, JSON.stringify(data, null, 2), 'utf8');
+  return res.status(200).json({ message: `User '${emailToDelete}' deleted successfully.`, remainingUsers: data.users.length });
+});
+
+// GET /api/admin/diagnostics - Check server configuration
+app.get('/api/admin/diagnostics', checkAdminKey, (req, res) => {
+  return res.status(200).json({
+    nodeEnv: process.env.NODE_ENV,
+    smtpConfigured: !!(process.env.SMTP_HOST && process.env.SMTP_USER && process.env.SMTP_PASS),
+    smtpHost: process.env.SMTP_HOST || 'NOT SET',
+    smtpPort: process.env.SMTP_PORT || 'NOT SET',
+    smtpUser: process.env.SMTP_USER ? '***configured***' : 'NOT SET',
+    senderEmail: process.env.SENDGRID_FROM_EMAIL || process.env.SMTP_FROM || process.env.SMTP_USER || 'NOT SET',
+    twilioConfigured: !!(process.env.TWILIO_ACCOUNT_SID && process.env.TWILIO_AUTH_TOKEN),
+    mailTransporterActive: !!mailTransporter,
+    dbPath: path.join(__dirname, 'data', 'db.json'),
+    dbExists: fs.existsSync(path.join(__dirname, 'data', 'db.json'))
+  });
+});
+
+/* =========================================================================
    USER API ENDPOINTS (AUTHENTICATED)
    ========================================================================= */
 
