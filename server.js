@@ -1,6 +1,8 @@
 const express = require('express');
 const path = require('path');
 const nodemailer = require('nodemailer');
+const https = require('https');
+const querystring = require('querystring');
 const db = require('./db');
 const auth = require('./auth');
 
@@ -83,17 +85,71 @@ async function sendOtpEmail(email, otp) {
   }
 }
 
+// Helper to send actual SMS via Twilio using native HTTPS module (zero-dependency)
+async function sendTwilioSms(to, body) {
+  const accountSid = process.env.TWILIO_ACCOUNT_SID;
+  const authToken = process.env.TWILIO_AUTH_TOKEN;
+  const fromNumber = process.env.TWILIO_PHONE_NUMBER;
+
+  if (!accountSid || !authToken || !fromNumber) {
+    console.log("Twilio SMS: Credentials missing from environment. Skipping SMS delivery.");
+    return false;
+  }
+
+  return new Promise((resolve) => {
+    const postData = querystring.stringify({
+      To: to,
+      From: fromNumber,
+      Body: body
+    });
+
+    const options = {
+      hostname: 'api.twilio.com',
+      port: 443,
+      path: `/2010-04-01/Accounts/${accountSid}/Messages.json`,
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/x-www-form-urlencoded',
+        'Content-Length': Buffer.byteLength(postData),
+        'Authorization': 'Basic ' + Buffer.from(`${accountSid}:${authToken}`).toString('base64')
+      }
+    };
+
+    const req = https.request(options, (res) => {
+      let responseBody = '';
+      res.on('data', (chunk) => { responseBody += chunk; });
+      res.on('end', () => {
+        if (res.statusCode >= 200 && res.statusCode < 300) {
+          console.log(`Twilio: SMS successfully sent to ${to}`);
+          resolve(true);
+        } else {
+          console.error(`Twilio error (HTTP ${res.statusCode}):`, responseBody);
+          resolve(false);
+        }
+      });
+    });
+
+    req.on('error', (e) => {
+      console.error("Twilio connection failed:", e);
+      resolve(false);
+    });
+
+    req.write(postData);
+    req.end();
+  });
+}
+
 /* =========================================================================
    AUTH API ENDPOINTS
    ========================================================================= */
 
 // POST /api/auth/register - Signup Route
 app.post('/api/auth/register', (req, res) => {
-  const { name, email, role } = req.body;
+  const { name, email, role, phone } = req.body;
   if (!name || !email || !role) {
     return res.status(400).json({ message: "Name, email, and role are required." });
   }
-  const result = auth.registerUser(name, email, role);
+  const result = auth.registerUser(name, email, role, phone);
   if (!result.success) {
     return res.status(result.status || 500).json({ message: result.message });
   }
@@ -112,16 +168,26 @@ app.post('/api/auth/request-otp', async (req, res) => {
     return res.status(result.status || 500).json({ message: result.message });
   }
 
-  // If SMTP is available, send email
+  const user = db.getUser(email);
   let sentRealEmail = false;
-  if (result.otp) { // Only available in dev mode
+  let sentRealSms = false;
+  
+  if (result.otp) { // Available in dev or prod (it generates the code)
+    // Send email via SendGrid (Nodemailer)
     sentRealEmail = await sendOtpEmail(email, result.otp);
+    
+    // Send SMS via Twilio if user has registered a phone number
+    if (user && user.phone) {
+      sentRealSms = await sendTwilioSms(user.phone, `Your JobGuard verification code is: ${result.otp}. It expires in 3 minutes.`);
+    }
   }
 
   return res.status(200).json({
     message: result.message,
     otp: process.env.NODE_ENV === 'development' && !sentRealEmail ? result.otp : undefined,
-    simulated: !sentRealEmail
+    emailSent: sentRealEmail,
+    smsSent: sentRealSms,
+    simulated: !sentRealEmail && !sentRealSms
   });
 });
 

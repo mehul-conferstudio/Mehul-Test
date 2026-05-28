@@ -112,6 +112,7 @@ const auth = {
           email: user.email,
           name: user.name,
           role: user.role,
+          phone: user.phone || '',
           points: user.points
         }
       };
@@ -139,7 +140,7 @@ const auth = {
   },
 
   // Signup/Register User
-  registerUser(name, email, role) {
+  registerUser(name, email, role, phone) {
     const cleanEmail = email.toLowerCase();
     
     // Basic validations
@@ -149,6 +150,9 @@ const auth = {
     const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
     if (!email || !emailRegex.test(cleanEmail)) {
       return { success: false, status: 400, message: "Invalid email address format." };
+    }
+    if (phone && !/^\+[1-9]\d{6,14}$/.test(phone)) {
+      return { success: false, status: 400, message: "Invalid phone number format. Must start with '+' and include country code (e.g. +919876543210)." };
     }
     if (!role || !['Job Seeker', 'Community Verifier'].includes(role)) {
       return { success: false, status: 400, message: "Invalid user role." };
@@ -162,13 +166,14 @@ const auth = {
 
     // Create user
     try {
-      const user = db.createUser({ name, email: cleanEmail, role });
+      const user = db.createUser({ name, email: cleanEmail, role, phone });
       return {
         success: true,
         user: {
           email: user.email,
           name: user.name,
           role: user.role,
+          phone: user.phone || '',
           points: user.points
         },
         message: "Registration successful! You can now request an OTP to log in."

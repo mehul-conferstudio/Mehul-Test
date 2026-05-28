@@ -103,6 +103,7 @@ const db = {
       email: cleanEmail,
       name: user.name,
       role: user.role || 'Job Seeker',
+      phone: user.phone || '', // Save phone number
       points: 0,
       createdAt: new Date().toISOString()
     };

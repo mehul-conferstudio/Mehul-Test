@@ -244,6 +244,7 @@ function setupAuth() {
   // Inputs
   const regName = document.getElementById('register-name');
   const regEmail = document.getElementById('register-email');
+  const regPhone = document.getElementById('register-phone');
   const loginEmail = document.getElementById('login-email');
   
   // Submit buttons
@@ -296,6 +297,7 @@ function setupAuth() {
   regSubmit.addEventListener('click', async () => {
     const name = regName.value.trim();
     const email = regEmail.value.trim();
+    const phone = regPhone ? regPhone.value.trim() : '';
     const roleLabel = currentRegRole === 'seeker' ? 'Job Seeker' : 'Community Verifier';
 
     if (!name || !email) {
@@ -311,7 +313,7 @@ function setupAuth() {
       const response = await fetch('/api/auth/register', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ name, email, role: roleLabel })
+        body: JSON.stringify({ name, email, role: roleLabel, phone })
       });
       const data = await response.json();
       
