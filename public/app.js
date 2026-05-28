@@ -1,46 +1,136 @@
 import { initialJobs, initialDiscussions } from './mockData.js';
 
 // ==========================================================================
-// APPLICATION STATE MANAGEMENT
+// APPLICATION STATE MANAGEMENT & API SYNC
 // ==========================================================================
 let jobs = [];
 let discussions = [];
-let currentUser = {
-  name: "Anukrati",
-  role: "seeker",
-  points: 120
-};
-let trackedJobs = []; // Array of { jobId, status: 'Saved'|'Applied'|'Interviewing'|'Offer'|'Flagged' }
+let currentUser = null;
+let trackedJobs = []; // Array of application objects loaded from database
+let authToken = localStorage.getItem('jg_auth_token') || null;
 
-// Initialize State from localStorage or fallback to defaults
-function initStorage() {
+// API fetch helper with authorization
+async function apiFetch(endpoint, options = {}) {
+  const headers = {
+    'Content-Type': 'application/json',
+    ...(options.headers || {})
+  };
+  if (authToken) {
+    headers['Authorization'] = `Bearer ${authToken}`;
+  }
+  const response = await fetch(endpoint, {
+    ...options,
+    headers
+  });
+  
+  if (response.status === 401 || response.status === 403) {
+    handleLogout();
+    throw new Error("Session expired. Please log in again.");
+  }
+  
+  const data = await response.json();
+  if (!response.ok) {
+    throw new Error(data.message || "Request failed");
+  }
+  return data;
+}
+
+// Initial storage load and auth status verification
+async function initStorage() {
+  // Load local static job feeds data cache
   if (!localStorage.getItem('jg_jobs')) {
     localStorage.setItem('jg_jobs', JSON.stringify(initialJobs));
   }
-  if (!localStorage.getItem('jg_discussions')) {
-    localStorage.setItem('jg_discussions', JSON.stringify(initialDiscussions));
-  }
-  if (!localStorage.getItem('jg_user')) {
-    localStorage.setItem('jg_user', JSON.stringify(currentUser));
-  }
-  if (!localStorage.getItem('jg_tracked')) {
-    localStorage.setItem('jg_tracked', JSON.stringify([
-      { jobId: "job-001", status: "Saved" },
-      { jobId: "job-003", status: "Applied" }
-    ]));
-  }
-
   jobs = JSON.parse(localStorage.getItem('jg_jobs'));
-  discussions = JSON.parse(localStorage.getItem('jg_discussions'));
-  currentUser = JSON.parse(localStorage.getItem('jg_user'));
-  trackedJobs = JSON.parse(localStorage.getItem('jg_tracked'));
+
+  // Parse cached user details if they exist
+  if (authToken && localStorage.getItem('jg_user')) {
+    try {
+      currentUser = JSON.parse(localStorage.getItem('jg_user'));
+      // Verify token is still valid with backend
+      const profile = await apiFetch('/api/user/profile');
+      currentUser = profile;
+      localStorage.setItem('jg_user', JSON.stringify(currentUser));
+      
+      // Hide welcome screen
+      document.getElementById('welcome-screen').classList.add('hidden');
+      updateHeaderUser();
+      
+      // Load user applications and community data
+      await syncTrackerAndCommunity();
+    } catch (err) {
+      console.warn("Auth token validation failed:", err);
+      handleLogout();
+    }
+  } else {
+    handleLogout();
+  }
 }
 
-function saveState() {
-  localStorage.setItem('jg_jobs', JSON.stringify(jobs));
-  localStorage.setItem('jg_discussions', JSON.stringify(discussions));
-  localStorage.setItem('jg_user', JSON.stringify(currentUser));
-  localStorage.setItem('jg_tracked', JSON.stringify(trackedJobs));
+async function syncTrackerAndCommunity() {
+  try {
+    // Fetch user applications from database
+    const apps = await apiFetch('/api/applications');
+    trackedJobs = apps;
+    
+    // Fetch discussions from database
+    const disc = await apiFetch('/api/discussions');
+    discussions = disc;
+  } catch (err) {
+    console.error("Failed to sync database data:", err);
+  }
+}
+
+function updateHeaderUser() {
+  const headerAvatar = document.getElementById('header-avatar');
+  const headerPoints = document.getElementById('header-points');
+  
+  if (currentUser) {
+    if (headerAvatar) {
+      headerAvatar.textContent = currentUser.name.charAt(0).toUpperCase();
+    }
+    if (headerPoints) {
+      headerPoints.textContent = `${currentUser.points} pts`;
+    }
+  } else {
+    if (headerAvatar) headerAvatar.textContent = "?";
+    if (headerPoints) headerPoints.textContent = "0 pts";
+  }
+}
+
+async function awardPoints(pts) {
+  if (!currentUser) return;
+  try {
+    const data = await apiFetch('/api/user/points', {
+      method: 'POST',
+      body: JSON.stringify({ amount: pts })
+    });
+    currentUser.points = data.points;
+    localStorage.setItem('jg_user', JSON.stringify(currentUser));
+    updateHeaderUser();
+  } catch (err) {
+    console.error("Failed to sync points:", err);
+  }
+}
+
+function handleLogout() {
+  authToken = null;
+  currentUser = null;
+  trackedJobs = [];
+  localStorage.removeItem('jg_auth_token');
+  localStorage.removeItem('jg_user');
+  document.getElementById('welcome-screen').classList.remove('hidden');
+  updateHeaderUser();
+  
+  // Show registration view by default
+  const regView = document.getElementById('auth-register-view');
+  const loginView = document.getElementById('auth-login-view');
+  const verifyView = document.getElementById('auth-verify-view');
+  const errorBanner = document.getElementById('auth-error-banner');
+  if (errorBanner) errorBanner.style.display = 'none';
+  if (regView) regView.classList.remove('hidden');
+  if (loginView) loginView.classList.add('hidden');
+  if (verifyView) verifyView.classList.add('hidden');
 }
 
 // ==========================================================================
@@ -96,7 +186,10 @@ function setupNavigation() {
   const viewPanels = document.querySelectorAll('.view-panel');
 
   navItems.forEach(item => {
-    item.addEventListener('click', () => {
+    item.addEventListener('click', async () => {
+      // Prevent navigation if not logged in
+      if (!authToken) return;
+      
       const targetPanel = item.getAttribute('data-tab');
       
       // Toggle Active Tab state
@@ -115,8 +208,10 @@ function setupNavigation() {
       if (targetPanel === 'feed-panel') {
         renderJobsFeed();
       } else if (targetPanel === 'tracker-panel') {
+        await syncTrackerAndCommunity();
         renderTrackerDashboard();
       } else if (targetPanel === 'ecosystem-panel') {
+        await syncTrackerAndCommunity();
         renderEcosystemFeed();
       } else if (targetPanel === 'verifier-panel') {
         renderVerifierQueue();
@@ -126,57 +221,286 @@ function setupNavigation() {
 }
 
 // ==========================================================================
-// WELCOME SCREEN & LOGIN
+// WELCOME SCREEN & LOGINS / SIGNUPS (OTP FLOWS)
 // ==========================================================================
-function setupAuth() {
-  const welcomeScreen = document.getElementById('welcome-screen');
-  const getStartedBtn = document.getElementById('get-started-btn');
-  const usernameInput = document.getElementById('username-input');
+let currentRegRole = 'seeker'; // 'seeker' or 'verifier'
+window.setRole = function(role) {
+  currentRegRole = role;
+  document.getElementById('role-seeker-btn').classList.toggle('active', role === 'seeker');
+  document.getElementById('role-verifier-btn').classList.toggle('active', role === 'verifier');
+};
 
-  // Skip welcome screen if already signed in earlier
-  if (sessionStorage.getItem('jg_session_active')) {
-    welcomeScreen.classList.add('hidden');
-    updateHeaderUser();
+function setupAuth() {
+  const regView = document.getElementById('auth-register-view');
+  const loginView = document.getElementById('auth-login-view');
+  const verifyView = document.getElementById('auth-verify-view');
+  
+  const toLoginLink = document.getElementById('auth-link-to-login');
+  const toRegisterLink = document.getElementById('auth-link-to-register');
+  const verifyBackLink = document.getElementById('auth-link-verify-back');
+  
+  const errorBanner = document.getElementById('auth-error-banner');
+  
+  // Inputs
+  const regName = document.getElementById('register-name');
+  const regEmail = document.getElementById('register-email');
+  const loginEmail = document.getElementById('login-email');
+  
+  // Submit buttons
+  const regSubmit = document.getElementById('register-submit-btn');
+  const loginSubmit = document.getElementById('login-submit-btn');
+  const verifySubmit = document.getElementById('verify-submit-btn');
+  const resendBtn = document.getElementById('otp-resend-btn');
+  
+  // Dev Toast Copy/Close Elements
+  const devToast = document.getElementById('dev-otp-toast');
+  const devCodeBox = document.getElementById('dev-otp-code');
+  const devToastClose = document.getElementById('dev-otp-close');
+  
+  if (devToastClose) {
+    devToastClose.addEventListener('click', () => {
+      devToast.classList.remove('visible');
+    });
   }
 
-  getStartedBtn.addEventListener('click', () => {
-    const enteredName = usernameInput.value.trim();
-    if (!enteredName) {
-      alert("Please enter a username to proceed.");
+  if (devCodeBox) {
+    devCodeBox.addEventListener('click', () => {
+      const code = devCodeBox.textContent;
+      if (code && code !== '------') {
+        navigator.clipboard.writeText(code);
+        alert(`OTP code "${code}" copied to clipboard!`);
+      }
+    });
+  }
+
+  // Toggle views helpers
+  const showSection = (sectionToShow) => {
+    errorBanner.style.display = 'none';
+    regView.classList.add('hidden');
+    loginView.classList.add('hidden');
+    verifyView.classList.add('hidden');
+    sectionToShow.classList.remove('hidden');
+  };
+
+  const showError = (msg) => {
+    errorBanner.textContent = msg;
+    errorBanner.style.display = 'block';
+  };
+
+  // Nav Links
+  toLoginLink.addEventListener('click', () => showSection(loginView));
+  toRegisterLink.addEventListener('click', () => showSection(regView));
+  verifyBackLink.addEventListener('click', () => showSection(loginView));
+
+  // 1. Submit Registration
+  regSubmit.addEventListener('click', async () => {
+    const name = regName.value.trim();
+    const email = regEmail.value.trim();
+    const roleLabel = currentRegRole === 'seeker' ? 'Job Seeker' : 'Community Verifier';
+
+    if (!name || !email) {
+      showError("Please fill out your name and email.");
       return;
     }
+
+    try {
+      regSubmit.disabled = true;
+      regSubmit.textContent = "Registering...";
+      errorBanner.style.display = 'none';
+      
+      const response = await fetch('/api/auth/register', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ name, email, role: roleLabel })
+      });
+      const data = await response.json();
+      
+      if (!response.ok) throw new Error(data.message);
+      
+      // Auto transition to login/OTP request
+      loginEmail.value = email;
+      await requestOtpFlow(email);
+    } catch (err) {
+      showError(err.message || "Registration failed. Please try again.");
+    } finally {
+      regSubmit.disabled = false;
+      regSubmit.textContent = "Register Account";
+    }
+  });
+
+  // 2. Submit Request OTP (Login)
+  loginSubmit.addEventListener('click', async () => {
+    const email = loginEmail.value.trim();
+    if (!email) {
+      showError("Please enter your email address.");
+      return;
+    }
+    await requestOtpFlow(email);
+  });
+
+  async function requestOtpFlow(email) {
+    try {
+      errorBanner.style.display = 'none';
+      loginSubmit.disabled = true;
+      loginSubmit.textContent = "Sending...";
+      
+      const response = await fetch('/api/auth/request-otp', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ email })
+      });
+      const data = await response.json();
+      
+      if (!response.ok) throw new Error(data.message);
+      
+      // Transition to verification state
+      document.getElementById('otp-sent-target').textContent = email;
+      showSection(verifyView);
+      startOtpTimer(email);
+      setupOtpInputs();
+      
+      // If dev code is simulated, trigger bezel notification push!
+      if (data.otp) {
+        devCodeBox.textContent = data.otp;
+        devToast.classList.add('visible');
+        setTimeout(() => {
+          devToast.classList.remove('visible');
+        }, 15000);
+      }
+    } catch (err) {
+      showError(err.message || "Failed to generate verification code.");
+    } finally {
+      loginSubmit.disabled = false;
+      loginSubmit.textContent = "Send Verification Code";
+    }
+  }
+
+  // Countdown timer helper
+  let otpTimerInterval = null;
+  function startOtpTimer(email) {
+    clearInterval(otpTimerInterval);
+    const timerLabel = document.getElementById('otp-timer-label');
+    resendBtn.disabled = true;
     
-    // Choose selected role
-    const activeRoleBtn = document.querySelector('.role-btn.active');
-    currentUser.role = activeRoleBtn ? activeRoleBtn.id.includes('seeker') ? 'seeker' : 'verifier' : 'seeker';
-    currentUser.name = enteredName;
+    let duration = 3 * 60; // 3 minutes
+    const tick = () => {
+      const mins = String(Math.floor(duration / 60)).padStart(2, '0');
+      const secs = String(duration % 60).padStart(2, '0');
+      timerLabel.textContent = `${mins}:${secs}`;
+      if (duration <= 0) {
+        clearInterval(otpTimerInterval);
+        timerLabel.textContent = "00:00";
+        resendBtn.disabled = false;
+      }
+      duration--;
+    };
+    tick();
+    otpTimerInterval = setInterval(tick, 1000);
+  }
+
+  // Resend Button handler
+  resendBtn.addEventListener('click', () => {
+    const email = document.getElementById('otp-sent-target').textContent;
+    requestOtpFlow(email);
+  });
+
+  // 3. Submit Verify OTP
+  verifySubmit.addEventListener('click', async () => {
+    const email = document.getElementById('otp-sent-target').textContent;
+    const otp = getOtpCode();
     
-    saveState();
-    updateHeaderUser();
-    
-    // Set Session active
-    sessionStorage.setItem('jg_session_active', 'true');
-    welcomeScreen.classList.add('hidden');
+    if (otp.length !== 6) {
+      showError("Please enter the full 6-digit code.");
+      return;
+    }
+
+    try {
+      verifySubmit.disabled = true;
+      verifySubmit.textContent = "Verifying...";
+      errorBanner.style.display = 'none';
+      
+      const response = await fetch('/api/auth/verify-otp', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ email, otp })
+      });
+      const data = await response.json();
+      
+      if (!response.ok) throw new Error(data.message);
+      
+      // Save session details
+      authToken = data.token;
+      currentUser = data.user;
+      localStorage.setItem('jg_auth_token', authToken);
+      localStorage.setItem('jg_user', JSON.stringify(currentUser));
+      
+      // Clear inputs
+      document.querySelectorAll('.otp-digit-input').forEach(inp => inp.value = '');
+      devToast.classList.remove('visible');
+      
+      // Render dashboard and sync data
+      updateHeaderUser();
+      await syncTrackerAndCommunity();
+      
+      document.getElementById('welcome-screen').classList.add('hidden');
+      document.querySelector('[data-tab="feed-panel"]').click();
+    } catch (err) {
+      showError(err.message || "Invalid or expired verification code.");
+    } finally {
+      verifySubmit.disabled = false;
+      verifySubmit.textContent = "Verify & Log In";
+    }
   });
 }
 
-function updateHeaderUser() {
-  const headerAvatar = document.getElementById('header-avatar');
-  const headerPoints = document.getElementById('header-points');
-  
-  if (headerAvatar) {
-    headerAvatar.textContent = currentUser.name.charAt(0).toUpperCase();
-  }
-  if (headerPoints) {
-    headerPoints.textContent = `${currentUser.points} pts`;
-  }
+function getOtpCode() {
+  const inputs = document.querySelectorAll('.otp-digit-input');
+  let code = '';
+  inputs.forEach(inp => {
+    code += inp.value;
+  });
+  return code;
 }
 
-function awardPoints(pts) {
-  currentUser.points += pts;
-  saveState();
-  updateHeaderUser();
+function setupOtpInputs() {
+  const inputs = document.querySelectorAll('.otp-digit-input');
+  
+  inputs.forEach((input, index) => {
+    input.value = ''; // clear initial
+    
+    input.addEventListener('input', (e) => {
+      const val = e.target.value;
+      if (!/^\d*$/.test(val)) {
+        e.target.value = '';
+        return;
+      }
+      if (val.length === 1 && index < inputs.length - 1) {
+        inputs[index + 1].focus();
+      }
+    });
+
+    input.addEventListener('keydown', (e) => {
+      if (e.key === 'Backspace' && !e.target.value && index > 0) {
+        inputs[index - 1].focus();
+      }
+    });
+
+    input.addEventListener('paste', (e) => {
+      e.preventDefault();
+      const text = (e.clipboardData || window.clipboardData).getData('text').trim();
+      if (/^\d{6}$/.test(text)) {
+        inputs.forEach((inp, idx) => {
+          inp.value = text[idx];
+        });
+        inputs[5].focus();
+      }
+    });
+  });
+  
+  // Focus the first input box
+  setTimeout(() => inputs[0].focus(), 100);
 }
+
 
 // ==========================================================================
 // RENDER: JOB FEED (FEED TABS)
@@ -374,22 +698,61 @@ function setupDetailsView() {
     detailsView.classList.remove('open');
   });
 
+  // Helper to save/update application on database
+  async function saveOrUpdateApplicationOnServer(job, status) {
+    const existing = trackedJobs.find(t => t.id === job.id || t.jobId === job.id);
+    if (existing) {
+      try {
+        const updated = await apiFetch(`/api/applications/${existing.id}`, {
+          method: 'PUT',
+          body: JSON.stringify({ status })
+        });
+        const idx = trackedJobs.findIndex(t => t.id === existing.id);
+        if (idx > -1) trackedJobs[idx] = updated;
+      } catch (err) {
+        console.error("Failed to update status on database:", err);
+      }
+    } else {
+      try {
+        const newApp = await apiFetch('/api/applications', {
+          method: 'POST',
+          body: JSON.stringify({
+            id: job.id,
+            title: job.title,
+            company: job.company,
+            location: job.location,
+            salary: job.salary,
+            originalLink: job.url || '',
+            platform: job.platform,
+            status: status,
+            trustScore: job.trustScore,
+            responseTime: job.responseTime
+          })
+        });
+        trackedJobs.push(newApp);
+      } catch (err) {
+        console.error("Failed to save application to database:", err);
+      }
+    }
+  }
+
   // Track / Save job
-  saveBtn.addEventListener('click', () => {
+  saveBtn.addEventListener('click', async () => {
     if (!currentDetailedJobId) return;
+    const job = jobs.find(j => j.id === currentDetailedJobId);
+    if (!job) return;
     
-    const existing = trackedJobs.find(t => t.jobId === currentDetailedJobId);
+    const existing = trackedJobs.find(t => t.id === currentDetailedJobId || t.jobId === currentDetailedJobId);
     if (existing) {
       alert("This job is already in your application tracker.");
     } else {
-      trackedJobs.push({ jobId: currentDetailedJobId, status: 'Saved' });
-      saveState();
+      await saveOrUpdateApplicationOnServer(job, 'Saved');
       alert("Job saved successfully! Check the CRM Tracker tab.");
     }
   });
 
   // Flag Job as Scam
-  flagBtn.addEventListener('click', () => {
+  flagBtn.addEventListener('click', async () => {
     if (!currentDetailedJobId) return;
     
     const job = jobs.find(j => j.id === currentDetailedJobId);
@@ -418,16 +781,22 @@ function setupDetailsView() {
       date: new Date().toISOString().split('T')[0]
     });
 
-    // Sync to Tracker
-    const trackedIndex = trackedJobs.findIndex(t => t.jobId === currentDetailedJobId);
-    if (trackedIndex > -1) {
-      trackedJobs[trackedIndex].status = 'Flagged';
-    } else {
-      trackedJobs.push({ jobId: currentDetailedJobId, status: 'Flagged' });
+    // Sync to Tracker & Public Scam list
+    await saveOrUpdateApplicationOnServer(job, 'Scam Blocked');
+    try {
+      await apiFetch('/api/scam-alerts', {
+        method: 'POST',
+        body: JSON.stringify({
+          title: job.title,
+          company: job.company,
+          platform: job.platform
+        })
+      });
+    } catch (err) {
+      console.error(err);
     }
 
-    saveState();
-    awardPoints(15); // Reward points for safety reports
+    await awardPoints(15); // Reward points for safety reports
     alert("Scam report filed! Thank you for protecting the community. You earned 15 verification points.");
     
     openJobDetails(currentDetailedJobId); // Re-render details view
@@ -435,7 +804,7 @@ function setupDetailsView() {
   });
 
   // Apply instantly simulator
-  applyBtn.addEventListener('click', () => {
+  applyBtn.addEventListener('click', async () => {
     if (!currentDetailedJobId) return;
     const job = jobs.find(j => j.id === currentDetailedJobId);
     if (!job) return;
@@ -446,13 +815,7 @@ function setupDetailsView() {
     }
 
     // Move to Applied status in CRM
-    const tracker = trackedJobs.find(t => t.jobId === currentDetailedJobId);
-    if (tracker) {
-      tracker.status = 'Applied';
-    } else {
-      trackedJobs.push({ jobId: currentDetailedJobId, status: 'Applied' });
-    }
-    saveState();
+    await saveOrUpdateApplicationOnServer(job, 'Applied');
 
     alert(`Simulating redirect to ${job.platform} listing page...\n\nYour application has been logged and moved to 'Applied' in your Tracker CRM.`);
   });
@@ -811,7 +1174,8 @@ function renderTrackerDashboard() {
   }
 
   trackedItems.forEach(item => {
-    const job = jobs.find(j => j.id === item.jobId);
+    // Try to find matching job in local cache, otherwise use the saved item attributes
+    const job = jobs.find(j => j.id === (item.jobId || item.id)) || item;
     if (!job) return;
 
     const card = document.createElement('div');
@@ -842,27 +1206,44 @@ function renderTrackerDashboard() {
 }
 
 // Window globally scoped helper functions for CRM actions
-window.advanceTrackerStage = function(jobId) {
-  const index = trackedJobs.findIndex(t => t.jobId === jobId);
-  if (index === -1) return;
+window.advanceTrackerStage = async function(jobId) {
+  const existing = trackedJobs.find(t => t.id === jobId || t.jobId === jobId);
+  if (!existing) return;
 
-  const currentStatus = trackedJobs[index].status;
+  const currentStatus = existing.status;
   let newStatus = currentStatus;
   
   if (currentStatus === 'Saved') newStatus = 'Applied';
   else if (currentStatus === 'Applied') newStatus = 'Interviewing';
   else if (currentStatus === 'Interviewing') newStatus = 'Offer';
 
-  trackedJobs[index].status = newStatus;
-  saveState();
-  renderTrackerDashboard();
+  try {
+    const updated = await apiFetch(`/api/applications/${existing.id}`, {
+      method: 'PUT',
+      body: JSON.stringify({ status: newStatus })
+    });
+    const idx = trackedJobs.findIndex(t => t.id === existing.id);
+    if (idx > -1) trackedJobs[idx] = updated;
+    renderTrackerDashboard();
+  } catch (err) {
+    alert(err.message);
+  }
 };
 
-window.removeTracker = function(jobId) {
+window.removeTracker = async function(jobId) {
+  const existing = trackedJobs.find(t => t.id === jobId || t.jobId === jobId);
+  if (!existing) return;
+
   if (confirm("Remove this job from your tracking dashboard?")) {
-    trackedJobs = trackedJobs.filter(t => t.jobId !== jobId);
-    saveState();
-    renderTrackerDashboard();
+    try {
+      await apiFetch(`/api/applications/${existing.id}`, {
+        method: 'DELETE'
+      });
+      trackedJobs = trackedJobs.filter(t => t.id !== existing.id);
+      renderTrackerDashboard();
+    } catch (err) {
+      alert(err.message);
+    }
   }
 };
 
@@ -886,7 +1267,7 @@ function setupEcosystem() {
   });
 
   // Post Submission
-  postBtn.addEventListener('click', () => {
+  postBtn.addEventListener('click', async () => {
     const titleInput = document.getElementById('post-title-input');
     const contentInput = document.getElementById('post-content-input');
     const categorySelect = document.getElementById('post-category-select');
@@ -900,29 +1281,31 @@ function setupEcosystem() {
       return;
     }
 
-    const newPost = {
-      id: `post-${Math.floor(1000 + Math.random() * 9000)}`,
-      author: currentUser.name,
-      avatar: currentUser.name.slice(0,2).toUpperCase(),
-      role: "Job Seeker",
-      title: title,
-      content: content,
-      category: category,
-      upvotes: 1,
-      replies: [],
-      date: "Just now"
-    };
+    try {
+      postBtn.disabled = true;
+      postBtn.textContent = "Posting...";
+      
+      const newPost = await apiFetch('/api/discussions', {
+        method: 'POST',
+        body: JSON.stringify({ title, content, tag: category })
+      });
 
-    discussions.unshift(newPost);
-    saveState();
-    awardPoints(10); // Reward active community content
+      // Insert locally and reward points
+      discussions.unshift(newPost);
+      await awardPoints(10); // Syncs points on database too
 
-    // Clear form inputs
-    titleInput.value = '';
-    contentInput.value = '';
+      // Clear form inputs
+      titleInput.value = '';
+      contentInput.value = '';
 
-    alert("Ecosystem post submitted successfully! You earned 10 points.");
-    renderEcosystemFeed();
+      alert("Ecosystem post submitted successfully! You earned 10 points.");
+      renderEcosystemFeed();
+    } catch (err) {
+      alert(err.message);
+    } finally {
+      postBtn.disabled = false;
+      postBtn.textContent = "Post";
+    }
   });
 }
 
@@ -1043,12 +1426,16 @@ function renderThreadCard(thread, targetContainer) {
 }
 
 // Window globally scoped community triggers
-window.upvotePost = function(postId) {
-  const post = discussions.find(d => d.id === postId);
-  if (post) {
-    post.upvotes += 1;
-    saveState();
+window.upvotePost = async function(postId) {
+  try {
+    const updated = await apiFetch(`/api/discussions/${postId}/upvote`, {
+      method: 'POST'
+    });
+    const idx = discussions.findIndex(d => d.id === postId);
+    if (idx > -1) discussions[idx] = updated;
     renderEcosystemFeed();
+  } catch (err) {
+    console.error(err);
   }
 };
 
@@ -1059,28 +1446,32 @@ window.toggleReplies = function(postId) {
   }
 };
 
-window.submitReply = function(postId) {
+window.submitReply = async function(postId) {
   const input = document.getElementById(`reply-input-${postId}`);
   const text = input.value.trim();
   
   if (!text) return;
 
-  const post = discussions.find(d => d.id === postId);
-  if (post) {
-    post.replies.push({
-      author: currentUser.name,
-      content: text,
-      date: "Just now"
+  try {
+    const updated = await apiFetch(`/api/discussions/${postId}/reply`, {
+      method: 'POST',
+      body: JSON.stringify({ content: text })
     });
-    saveState();
-    awardPoints(5); // points for contributing replies
+    
+    const idx = discussions.findIndex(d => d.id === postId);
+    if (idx > -1) discussions[idx] = updated;
+    await awardPoints(5); // Reward points
     
     input.value = '';
     renderEcosystemFeed();
     // Re-open replies drawer after render
-    document.getElementById(`reply-box-${postId}`).style.display = 'flex';
+    const box = document.getElementById(`reply-box-${postId}`);
+    if (box) box.style.display = 'flex';
+  } catch (err) {
+    alert(err.message);
   }
 };
+
 
 // ==========================================================================
 // GAMIFIED CROWDSOURCED VERIFIER QUEUE
@@ -1199,7 +1590,6 @@ function escapeHTML(str) {
 // INITIAL SETUP ON PAGE LOAD
 // ==========================================================================
 document.addEventListener('DOMContentLoaded', () => {
-  initStorage();
   setupPWA();
   setupNavigation();
   setupAuth();
@@ -1208,13 +1598,32 @@ document.addEventListener('DOMContentLoaded', () => {
   setupScraper();
   setupTracker();
   
-  // Render initial landing listings
-  renderJobsFeed();
+  // Initialize storage & session
+  initStorage().then(() => {
+    // Render initial landing listings
+    renderJobsFeed();
+  });
 
   // Set real date/time on notch bar
   const clock = document.getElementById('phone-clock');
   if (clock) {
-    const now = new Date();
-    clock.textContent = `${String(now.getHours()).padStart(2, '0')}:${String(now.getMinutes()).padStart(2, '0')}`;
+    const tickTime = () => {
+      const now = new Date();
+      clock.textContent = `${String(now.getHours()).padStart(2, '0')}:${String(now.getMinutes()).padStart(2, '0')}`;
+    };
+    tickTime();
+    setInterval(tickTime, 60000);
+  }
+
+  // Setup click to logout on user avatar badge
+  const userBadge = document.querySelector('.user-badge');
+  if (userBadge) {
+    userBadge.addEventListener('click', () => {
+      if (authToken) {
+        if (confirm("Are you sure you want to log out of your JobGuard session?")) {
+          handleLogout();
+        }
+      }
+    });
   }
 });

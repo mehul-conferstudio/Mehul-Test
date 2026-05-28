@@ -26,6 +26,21 @@
   <!-- Phone Emulator Frame (Centers the PWA on Desktop, fits full-screen on Mobile) -->
   <div class="phone-emulator">
     
+    <!-- Simulated Mobile Push Notification (Dev Mode OTP Viewer) -->
+    <div id="dev-otp-toast" class="dev-notification-toast">
+      <div class="dev-notification-icon">
+        <svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="2.5">
+          <path stroke-linecap="round" stroke-linejoin="round" d="M21.75 6.75v10.5a2.25 2.25 0 0 1-2.25 2.25h-15a2.25 2.25 0 0 1-2.25-2.25V6.75m19.5 0A2.25 2.25 0 0 0 19.5 4.5h-15a2.25 2.25 0 0 0-2.25 2.25m19.5 0v.243a2.25 2.25 0 0 1-1.07 1.916l-7.5 4.615a2.25 2.25 0 0 1-2.36 0L3.32 8.91a2.25 2.25 0 0 1-1.07-1.916V6.75" />
+        </svg>
+      </div>
+      <div class="dev-notification-body">
+        <div class="dev-notification-title">Verification Code (Simulated)</div>
+        <div class="dev-notification-text">A secure OTP has been generated for your registration / login request. Click below to copy:</div>
+        <div id="dev-otp-code" class="dev-notification-code-box">------</div>
+      </div>
+      <button id="dev-otp-close" class="dev-notification-close">✕</button>
+    </div>
+
     <!-- Phone Bezel Header (Time, Notch, Battery status mockup) -->
     <div class="phone-notch">
       <div id="phone-clock">14:15</div>
@@ -47,7 +62,7 @@
     </div>
 
     <!-- ==========================================
-         WELCOME & LOGIN SCREEN
+         WELCOME & AUTHENTICATION SCREENS
          ========================================== -->
     <div id="welcome-screen" class="welcome-screen">
       <div class="welcome-logo-container">
@@ -66,14 +81,68 @@
       </div>
 
       <div class="auth-form-card">
-        <div class="role-selector">
-          <button id="role-seeker-btn" class="role-btn active" onclick="setRole('seeker')">Job Seeker</button>
-          <button id="role-verifier-btn" class="role-btn" onclick="setRole('verifier')">Community Verifier</button>
+        <!-- Unified Error Message Area -->
+        <div id="auth-error-banner" class="auth-error-msg"></div>
+
+        <!-- STATE 1: REGISTER VIEW -->
+        <div id="auth-register-view" class="auth-view">
+          <div style="text-align: center; margin-bottom: 4px;">
+            <span class="checklist-title">Create Account</span>
+          </div>
+          <div class="role-selector auth-role-select">
+            <button id="role-seeker-btn" class="role-btn active" onclick="setRole('seeker')">Job Seeker</button>
+            <button id="role-verifier-btn" class="role-btn" onclick="setRole('verifier')">Community Verifier</button>
+          </div>
+          <input type="text" id="register-name" class="login-input" placeholder="Full Name (e.g. Anukrati)" value="Anukrati">
+          <input type="email" id="register-email" class="login-input" placeholder="Email Address">
+          <button id="register-submit-btn" class="btn-primary">Register Account</button>
+          <div class="auth-link-wrap">
+            Already registered? <span id="auth-link-to-login" class="auth-link">Log In</span>
+          </div>
         </div>
-        <input type="text" id="username-input" class="login-input" placeholder="Enter your name" value="Anukrati">
-        <button id="get-started-btn" class="btn-primary">Enter Ecosystem</button>
+
+        <!-- STATE 2: LOGIN VIEW -->
+        <div id="auth-login-view" class="auth-view hidden">
+          <div style="text-align: center; margin-bottom: 4px;">
+            <span class="checklist-title">Welcome Back</span>
+          </div>
+          <input type="email" id="login-email" class="login-input" placeholder="Enter your email">
+          <button id="login-submit-btn" class="btn-primary">Send Verification Code</button>
+          <div class="auth-link-wrap">
+            New to JobGuard? <span id="auth-link-to-register" class="auth-link">Sign Up</span>
+          </div>
+        </div>
+
+        <!-- STATE 3: OTP VERIFICATION VIEW -->
+        <div id="auth-verify-view" class="auth-view hidden">
+          <div style="text-align: center;">
+            <span class="checklist-title">Enter Verification Code</span>
+            <p class="scrape-desc" style="margin-top: 4px;">Code sent to <span id="otp-sent-target" style="color: #fff; font-weight: 700;">email</span></p>
+          </div>
+          
+          <!-- 6 Digit Code Grid -->
+          <div class="otp-inputs-row" id="otp-inputs-container">
+            <input type="text" class="otp-digit-input" maxlength="1" pattern="[0-9]" inputmode="numeric" data-index="0">
+            <input type="text" class="otp-digit-input" maxlength="1" pattern="[0-9]" inputmode="numeric" data-index="1">
+            <input type="text" class="otp-digit-input" maxlength="1" pattern="[0-9]" inputmode="numeric" data-index="2">
+            <input type="text" class="otp-digit-input" maxlength="1" pattern="[0-9]" inputmode="numeric" data-index="3">
+            <input type="text" class="otp-digit-input" maxlength="1" pattern="[0-9]" inputmode="numeric" data-index="4">
+            <input type="text" class="otp-digit-input" maxlength="1" pattern="[0-9]" inputmode="numeric" data-index="5">
+          </div>
+
+          <div class="otp-meta-row">
+            <span>Expires in: <strong id="otp-timer-label" class="otp-timer">03:00</strong></span>
+            <button id="otp-resend-btn" class="btn-resend-otp" disabled>Resend Code</button>
+          </div>
+
+          <button id="verify-submit-btn" class="btn-primary">Verify & Log In</button>
+          <div class="auth-link-wrap">
+            <span id="auth-link-verify-back" class="auth-link">← Back to Login</span>
+          </div>
+        </div>
       </div>
     </div>
+
 
     <!-- ==========================================
          MAIN APPLICATION INTERFACE

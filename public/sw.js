@@ -41,6 +41,10 @@ self.addEventListener("fetch", (event) => {
   // Only cache GET requests
   if (event.request.method !== "GET") return;
 
+  // Do not cache API endpoints
+  const url = new URL(event.request.url);
+  if (url.pathname.includes('/api/')) return;
+
   event.respondWith(
     caches.match(event.request).then((cachedResponse) => {
       if (cachedResponse) {

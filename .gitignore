@@ -9,3 +9,13 @@ desktop.ini
 
 # Local server script (not needed on Render)
 server.ps1
+
+# Node modules dependencies
+node_modules/
+
+# Local databases and config
+data/
+.env
+*.tmp
+*.log
+
