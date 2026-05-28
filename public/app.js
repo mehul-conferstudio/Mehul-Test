@@ -348,11 +348,19 @@ function setupAuth() {
       
       if (!response.ok) throw new Error(data.message);
       
-      // Auto transition to login/OTP request
+      // Registration succeeded — switch to login view and auto-request OTP
       loginEmail.value = email;
+      showSection(loginView);
       await requestOtpFlow(email);
     } catch (err) {
-      showError(err.message || "Registration failed. Please try again.");
+      // If user is already registered, switch to login view automatically
+      if (err.message && err.message.toLowerCase().includes('already registered')) {
+        loginEmail.value = email;
+        showSection(loginView);
+        showError("Email already registered. You can request an OTP to log in.");
+      } else {
+        showError(err.message || "Registration failed. Please try again.");
+      }
     } finally {
       regSubmit.disabled = false;
       regSubmit.textContent = "Register Account";
