@@ -1713,6 +1713,8 @@ body {
 }
 
 .otp-digit-input {
+  width: 100%;
+  min-width: 0;
   background: rgba(0, 0, 0, 0.25);
   border: 1px solid var(--border-light);
   color: #fff;
