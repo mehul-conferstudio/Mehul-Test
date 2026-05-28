@@ -16,6 +16,7 @@ node_modules/
 # Local databases and config
 data/
 .env
+verify_smtp.js
 *.tmp
 *.log
 
