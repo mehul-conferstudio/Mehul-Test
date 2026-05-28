@@ -1,10 +1,29 @@
 const express = require('express');
 const path = require('path');
+const fs = require('fs');
 const nodemailer = require('nodemailer');
 const https = require('https');
 const querystring = require('querystring');
 const db = require('./db');
 const auth = require('./auth');
+
+// Manually load .env file for local development if it exists
+const envPath = path.join(__dirname, '.env');
+if (fs.existsSync(envPath)) {
+  const envConfig = fs.readFileSync(envPath, 'utf8');
+  envConfig.split('\n').forEach(line => {
+    const match = line.match(/^\s*([\w.-]+)\s*=\s*(.*)?\s*$/);
+    if (match) {
+      const key = match[1];
+      let value = match[2] || '';
+      // Remove quotes
+      if (value.startsWith('"') && value.endsWith('"')) value = value.slice(1, -1);
+      if (value.startsWith("'") && value.endsWith("'")) value = value.slice(1, -1);
+      process.env[key] = value.trim();
+    }
+  });
+  console.log(".env configuration file loaded successfully.");
+}
 
 const app = express();
 const PORT = process.env.PORT || 8080;
@@ -40,16 +59,17 @@ app.use(express.static(path.join(__dirname, 'public')));
 // Email Transporter (Nodemailer) setup
 let mailTransporter = null;
 if (process.env.SMTP_HOST && process.env.SMTP_USER && process.env.SMTP_PASS) {
+  const isSecure = process.env.SMTP_PORT === '465' || process.env.SMTP_SECURE === 'true';
   mailTransporter = nodemailer.createTransport({
     host: process.env.SMTP_HOST,
     port: parseInt(process.env.SMTP_PORT) || 587,
-    secure: process.env.SMTP_SECURE === 'true',
+    secure: isSecure,
     auth: {
       user: process.env.SMTP_USER,
       pass: process.env.SMTP_PASS
     }
   });
-  console.log("Nodemailer SMTP Transporter configured.");
+  console.log("Nodemailer SMTP Transporter configured. Secure:", isSecure);
 } else {
   console.log("Nodemailer: No SMTP credentials found. Defaulting to Console/API response logging in development.");
 }
@@ -58,8 +78,9 @@ if (process.env.SMTP_HOST && process.env.SMTP_USER && process.env.SMTP_PASS) {
 async function sendOtpEmail(email, otp) {
   if (!mailTransporter) return false;
   try {
+    const senderEmail = process.env.SENDGRID_FROM_EMAIL || process.env.SMTP_FROM || process.env.SMTP_USER;
     await mailTransporter.sendMail({
-      from: `"JobGuard Security" <${process.env.SMTP_USER}>`,
+      from: `"JobGuard Security" <${senderEmail}>`,
       to: email,
       subject: "Your JobGuard Verification Code",
       text: `Your verification code is: ${otp}. It is valid for 3 minutes. If you did not request this, please ignore this email.`,
