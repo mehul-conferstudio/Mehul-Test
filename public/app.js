@@ -351,7 +351,7 @@ function setupAuth() {
       // Registration succeeded — switch to login view and auto-request OTP
       loginEmail.value = email;
       showSection(loginView);
-      await requestOtpFlow(email);
+      await requestOtpFlow(email, loginSubmit);
     } catch (err) {
       // If user is already registered, switch to login view automatically
       if (err.message && err.message.toLowerCase().includes('already registered')) {
@@ -374,14 +374,17 @@ function setupAuth() {
       showError("Please enter your email address.");
       return;
     }
-    await requestOtpFlow(email);
+    await requestOtpFlow(email, loginSubmit);
   });
 
-  async function requestOtpFlow(email) {
+  // sourceBtn: the button that triggered the OTP request (regSubmit or loginSubmit)
+  async function requestOtpFlow(email, sourceBtn) {
+    const btn = sourceBtn || loginSubmit;
+    const originalText = btn.textContent;
     try {
       errorBanner.style.display = 'none';
-      loginSubmit.disabled = true;
-      loginSubmit.textContent = "Sending...";
+      btn.disabled = true;
+      btn.textContent = 'Sending...';
       
       const response = await fetch('/api/auth/request-otp', {
         method: 'POST',
@@ -390,6 +393,10 @@ function setupAuth() {
       });
       const data = await response.json();
       
+      if (response.status === 503) {
+        // Production email delivery failure — give clear guidance
+        throw new Error('Verification email could not be delivered. Please try again in a moment.');
+      }
       if (!response.ok) throw new Error(data.message);
       
       // Transition to verification state
@@ -398,7 +405,7 @@ function setupAuth() {
       startOtpTimer(email);
       setupOtpInputs();
       
-      // If dev code is simulated, trigger bezel notification push!
+      // Show dev OTP toast if running in development mode (simulated)
       if (data.otp) {
         devCodeBox.textContent = data.otp;
         devToast.classList.add('visible');
@@ -407,10 +414,10 @@ function setupAuth() {
         }, 15000);
       }
     } catch (err) {
-      showError(err.message || "Failed to generate verification code.");
+      showError(err.message || 'Failed to generate verification code.');
     } finally {
-      loginSubmit.disabled = false;
-      loginSubmit.textContent = "Send Verification Code";
+      btn.disabled = false;
+      btn.textContent = originalText;
     }
   }
 

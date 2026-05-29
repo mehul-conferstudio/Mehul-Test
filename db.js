@@ -1,187 +1,246 @@
-const fs = require('fs');
-const path = require('path');
+const { MongoClient } = require('mongodb');
+const dns = require('dns');
 
-const DB_PATH = path.join(__dirname, 'data', 'db.json');
-const DATA_DIR = path.join(__dirname, 'data');
+// Force IPv4 DNS resolution — Node.js defaults to IPv6 which some ISP routers
+// refuse for SRV record queries (e.g. mongodb+srv:// lookups).
+dns.setDefaultResultOrder('ipv4first');
 
-// Initialize DB structure
-const initialDb = {
-  users: [],
-  otps: [],
-  applications: [],
-  discussions: [
-    {
-      id: "disc-1",
-      authorName: "Anukrati",
-      authorRole: "Job Seeker",
-      tag: "Alert",
-      title: "Warning: WhatsApp recruiter from 'Apex Global'",
-      content: "Got a message offering $200/day for liking YouTube videos. They asked for a 'refundable training deposit' of $50. Definitely a scam, block them immediately!",
-      upvotes: 18,
-      upvotedBy: [],
-      replies: [
-        {
-          authorName: "Rohan S.",
-          content: "Thanks for posting, they messaged me yesterday as well! Blocked.",
-          createdAt: "2026-05-28T09:00:00Z"
-        }
-      ],
-      createdAt: "2026-05-28T08:30:00Z"
-    },
-    {
-      id: "disc-2",
-      authorName: "Dev M.",
-      authorRole: "Community Verifier",
-      tag: "Guide",
-      title: "How to check if a company email domain is legitimate",
-      content: "Always check the domain MX records. Scammers often use domains like '@gmail-recruiting.com' instead of the official corporate domain. You can use command-line 'nslookup -type=mx domain.com' to verify.",
-      upvotes: 24,
-      upvotedBy: [],
-      replies: [],
-      createdAt: "2026-05-27T14:15:00Z"
-    }
-  ],
-  scamAlerts: [
-    {
-      id: "alert-1",
-      title: "Social Media Optimizer",
-      company: "Apex Global Solutions",
-      platform: "Naukri",
-      dateReported: "2026-05-28T08:30:00Z"
-    },
-    {
-      id: "alert-2",
-      title: "Data Entry Clerk (Work From Home)",
-      company: "Universal Tech Group",
-      platform: "Monster",
-      dateReported: "2026-05-28T10:15:00Z"
-    }
-  ]
-};
 
-// Ensure data folder exists
-if (!fs.existsSync(DATA_DIR)) {
-  fs.mkdirSync(DATA_DIR, { recursive: true });
-}
+// ==========================================================================
+// CONNECTION
+// ==========================================================================
+// NOTE: MONGO_URI is read inside connectDb() (not at module level) so that
+// server.js has a chance to load the .env file before this value is evaluated.
 
-// Atomically write database to prevent corruption
-function writeDb(data) {
-  const tempPath = DB_PATH + '.tmp';
-  fs.writeFileSync(tempPath, JSON.stringify(data, null, 2), 'utf8');
-  fs.renameSync(tempPath, DB_PATH);
-}
+let _client = null;
+let _db = null;
 
-// Read database
-function readDb() {
-  if (!fs.existsSync(DB_PATH)) {
-    writeDb(initialDb);
-    return initialDb;
+async function connectDb() {
+  if (_db) return _db; // Already connected
+
+  const MONGO_URI = process.env.MONGODB_URI;
+  const DB_NAME = 'jobguard';
+
+  if (!MONGO_URI) {
+    throw new Error(
+      'MONGODB_URI environment variable is not set. ' +
+      'Add it to your .env file (local) or Render dashboard (production).'
+    );
   }
-  try {
-    const content = fs.readFileSync(DB_PATH, 'utf8');
-    return JSON.parse(content);
-  } catch (err) {
-    console.error("Failed to read database, resetting to default:", err);
-    return initialDb;
+
+  _client = new MongoClient(MONGO_URI, {
+    serverSelectionTimeoutMS: 10000,
+    connectTimeoutMS: 10000
+  });
+
+  await _client.connect();
+  _db = _client.db(DB_NAME);
+  console.log(`[DB] Connected to MongoDB Atlas — database: "${DB_NAME}"`);
+
+  // Seed reference data on first boot
+  await seedIfEmpty(_db);
+
+  return _db;
+}
+
+function getDb() {
+  if (!_db) throw new Error('[DB] Database not connected. Call connectDb() first.');
+  return _db;
+}
+
+// ==========================================================================
+// SEEDING — runs only if collections are empty
+// ==========================================================================
+async function seedIfEmpty(database) {
+  const discussions = database.collection('discussions');
+  const count = await discussions.countDocuments();
+
+  if (count === 0) {
+    console.log('[DB] Seeding initial discussions and scam alerts...');
+    await discussions.insertMany([
+      {
+        id: 'disc-1',
+        authorName: 'Anukrati',
+        authorRole: 'Job Seeker',
+        tag: 'Alert',
+        title: "Warning: WhatsApp recruiter from 'Apex Global'",
+        content: "Got a message offering $200/day for liking YouTube videos. They asked for a 'refundable training deposit' of $50. Definitely a scam, block them immediately!",
+        upvotes: 18,
+        upvotedBy: [],
+        replies: [
+          {
+            authorName: 'Rohan S.',
+            content: 'Thanks for posting, they messaged me yesterday as well! Blocked.',
+            createdAt: '2026-05-28T09:00:00Z'
+          }
+        ],
+        createdAt: '2026-05-28T08:30:00Z'
+      },
+      {
+        id: 'disc-2',
+        authorName: 'Dev M.',
+        authorRole: 'Community Verifier',
+        tag: 'Guide',
+        title: 'How to check if a company email domain is legitimate',
+        content: "Always check the domain MX records. Scammers often use domains like '@gmail-recruiting.com' instead of the official corporate domain. You can use command-line 'nslookup -type=mx domain.com' to verify.",
+        upvotes: 24,
+        upvotedBy: [],
+        replies: [],
+        createdAt: '2026-05-27T14:15:00Z'
+      }
+    ]);
+  }
+
+  const scamAlerts = database.collection('scamAlerts');
+  const alertCount = await scamAlerts.countDocuments();
+
+  if (alertCount === 0) {
+    await scamAlerts.insertMany([
+      {
+        id: 'alert-1',
+        title: 'Social Media Optimizer',
+        company: 'Apex Global Solutions',
+        platform: 'Naukri',
+        dateReported: '2026-05-28T08:30:00Z'
+      },
+      {
+        id: 'alert-2',
+        title: 'Data Entry Clerk (Work From Home)',
+        company: 'Universal Tech Group',
+        platform: 'Monster',
+        dateReported: '2026-05-28T10:15:00Z'
+      }
+    ]);
+    console.log('[DB] Seed complete.');
   }
 }
 
-// User Operations
+// ==========================================================================
+// DB MODULE — same public interface as the old file-based version
+// ==========================================================================
 const db = {
-  getUser(email) {
-    const data = readDb();
-    return data.users.find(u => u.email.toLowerCase() === email.toLowerCase());
+
+  // ---------- USER OPERATIONS ----------
+
+  async getUser(email) {
+    const col = getDb().collection('users');
+    return col.findOne({ email: email.toLowerCase() }, { projection: { _id: 0 } });
   },
 
-  createUser(user) {
-    const data = readDb();
+  async createUser(user) {
+    const col = getDb().collection('users');
     const cleanEmail = user.email.toLowerCase();
-    if (data.users.some(u => u.email.toLowerCase() === cleanEmail)) {
-      throw new Error("User already exists");
-    }
+
+    const existing = await col.findOne({ email: cleanEmail });
+    if (existing) throw new Error('User already exists');
+
     const newUser = {
       email: cleanEmail,
       name: user.name,
       role: user.role || 'Job Seeker',
-      phone: user.phone || '', // Save phone number
+      phone: user.phone || '',
       points: 0,
       createdAt: new Date().toISOString()
     };
-    data.users.push(newUser);
-    writeDb(data);
-    return newUser;
+
+    await col.insertOne(newUser);
+    const { _id, ...userWithoutId } = newUser;
+    return userWithoutId;
   },
 
-  updateUser(email, updates) {
-    const data = readDb();
-    const idx = data.users.findIndex(u => u.email.toLowerCase() === email.toLowerCase());
-    if (idx === -1) throw new Error("User not found");
-    
-    // Whitelist updates
-    if (updates.name !== undefined) data.users[idx].name = updates.name;
-    if (updates.role !== undefined) data.users[idx].role = updates.role;
-    if (updates.points !== undefined) data.users[idx].points = updates.points;
-    
-    writeDb(data);
-    return data.users[idx];
-  },
-
-  // OTP Operations (Ephemeral Auth Session Token)
-  getOtp(email) {
-    const data = readDb();
-    return data.otps.find(o => o.email.toLowerCase() === email.toLowerCase());
-  },
-
-  saveOtp(email, otpHash, expiresAt) {
-    const data = readDb();
+  async updateUser(email, updates) {
+    const col = getDb().collection('users');
     const cleanEmail = email.toLowerCase();
-    const idx = data.otps.findIndex(o => o.email.toLowerCase() === cleanEmail);
+
+    const allowed = {};
+    if (updates.name !== undefined) allowed.name = updates.name;
+    if (updates.role !== undefined) allowed.role = updates.role;
+    if (updates.points !== undefined) allowed.points = updates.points;
+
+    const result = await col.findOneAndUpdate(
+      { email: cleanEmail },
+      { $set: allowed },
+      { returnDocument: 'after', projection: { _id: 0 } }
+    );
+
+    if (!result) throw new Error('User not found');
+    return result;
+  },
+
+  async getAllUsers() {
+    const col = getDb().collection('users');
+    return col.find({}, { projection: { _id: 0 } }).toArray();
+  },
+
+  async deleteUser(email) {
+    const col = getDb().collection('users');
+    const cleanEmail = email.toLowerCase();
+
+    // Also clean up OTPs and applications
+    await getDb().collection('otps').deleteMany({ email: cleanEmail });
+    await getDb().collection('applications').deleteMany({ userEmail: cleanEmail });
+
+    const result = await col.deleteOne({ email: cleanEmail });
+    return result.deletedCount > 0;
+  },
+
+  // ---------- OTP OPERATIONS ----------
+
+  async getOtp(email) {
+    const col = getDb().collection('otps');
+    return col.findOne({ email: email.toLowerCase() }, { projection: { _id: 0 } });
+  },
+
+  async saveOtp(email, otpHash, expiresAt) {
+    const col = getDb().collection('otps');
+    const cleanEmail = email.toLowerCase();
+
+    const existing = await col.findOne({ email: cleanEmail });
+    const now = Date.now();
+    const tenMinsAgo = now - 10 * 60 * 1000;
+
+    // Merge request times, keep only last 10 minutes
+    const prevTimes = existing ? existing.requestTimes : [];
+    const requestTimes = [...prevTimes.filter(t => t > tenMinsAgo), now];
 
     const record = {
       email: cleanEmail,
       hash: otpHash,
       expiresAt,
       attempts: 0,
-      requestTimes: idx !== -1 ? [...data.otps[idx].requestTimes, Date.now()] : [Date.now()]
+      requestTimes
     };
 
-    // Filter request times to keep only those within last 10 minutes
-    const tenMinsAgo = Date.now() - 10 * 60 * 1000;
-    record.requestTimes = record.requestTimes.filter(t => t > tenMinsAgo);
-
-    if (idx !== -1) {
-      data.otps[idx] = record;
-    } else {
-      data.otps.push(record);
-    }
-    writeDb(data);
+    await col.replaceOne({ email: cleanEmail }, record, { upsert: true });
     return record;
   },
 
-  updateOtp(email, updates) {
-    const data = readDb();
-    const idx = data.otps.findIndex(o => o.email.toLowerCase() === email.toLowerCase());
-    if (idx === -1) return null;
-    
-    data.otps[idx] = { ...data.otps[idx], ...updates };
-    writeDb(data);
-    return data.otps[idx];
+  async updateOtp(email, updates) {
+    const col = getDb().collection('otps');
+    const result = await col.findOneAndUpdate(
+      { email: email.toLowerCase() },
+      { $set: updates },
+      { returnDocument: 'after', projection: { _id: 0 } }
+    );
+    return result || null;
   },
 
-  deleteOtp(email) {
-    const data = readDb();
-    data.otps = data.otps.filter(o => o.email.toLowerCase() !== email.toLowerCase());
-    writeDb(data);
+  async deleteOtp(email) {
+    const col = getDb().collection('otps');
+    await col.deleteOne({ email: email.toLowerCase() });
   },
 
-  // Application Tracker Operations
-  getApplications(email) {
-    const data = readDb();
-    return data.applications.filter(a => a.userEmail.toLowerCase() === email.toLowerCase());
+  // ---------- APPLICATION OPERATIONS ----------
+
+  async getApplications(email) {
+    const col = getDb().collection('applications');
+    return col
+      .find({ userEmail: email.toLowerCase() }, { projection: { _id: 0 } })
+      .toArray();
   },
 
-  saveApplication(email, app) {
-    const data = readDb();
+  async saveApplication(email, app) {
+    const col = getDb().collection('applications');
     const newApp = {
       id: app.id || `app-${Date.now()}-${Math.random().toString(36).substr(2, 9)}`,
       userEmail: email.toLowerCase(),
@@ -191,44 +250,49 @@ const db = {
       salary: app.salary || 'Not Disclosed',
       originalLink: app.originalLink || '',
       platform: app.platform || 'LinkedIn',
-      status: app.status || 'Saved', // Saved, Applied, Interviewing, Offer, Scam Blocked
+      status: app.status || 'Saved',
       trustScore: app.trustScore !== undefined ? app.trustScore : 100,
       responseTime: app.responseTime || 'Average',
       updatedAt: new Date().toISOString()
     };
-    data.applications.push(newApp);
-    writeDb(data);
-    return newApp;
+
+    await col.insertOne(newApp);
+    const { _id, ...appWithoutId } = newApp;
+    return appWithoutId;
   },
 
-  updateApplication(email, id, updates) {
-    const data = readDb();
-    const idx = data.applications.findIndex(a => a.id === id && a.userEmail.toLowerCase() === email.toLowerCase());
-    if (idx === -1) throw new Error("Application not found");
+  async updateApplication(email, id, updates) {
+    const col = getDb().collection('applications');
+    const cleanEmail = email.toLowerCase();
 
-    const app = data.applications[idx];
-    if (updates.status !== undefined) app.status = updates.status;
-    if (updates.notes !== undefined) app.notes = updates.notes;
-    app.updatedAt = new Date().toISOString();
+    const allowed = { updatedAt: new Date().toISOString() };
+    if (updates.status !== undefined) allowed.status = updates.status;
+    if (updates.notes !== undefined) allowed.notes = updates.notes;
 
-    writeDb(data);
-    return app;
+    const result = await col.findOneAndUpdate(
+      { id, userEmail: cleanEmail },
+      { $set: allowed },
+      { returnDocument: 'after', projection: { _id: 0 } }
+    );
+
+    if (!result) throw new Error('Application not found');
+    return result;
   },
 
-  deleteApplication(email, id) {
-    const data = readDb();
-    data.applications = data.applications.filter(a => !(a.id === id && a.userEmail.toLowerCase() === email.toLowerCase()));
-    writeDb(data);
+  async deleteApplication(email, id) {
+    const col = getDb().collection('applications');
+    await col.deleteOne({ id, userEmail: email.toLowerCase() });
   },
 
-  // Community Operations
-  getDiscussions() {
-    const data = readDb();
-    return data.discussions;
+  // ---------- COMMUNITY OPERATIONS ----------
+
+  async getDiscussions() {
+    const col = getDb().collection('discussions');
+    return col.find({}, { projection: { _id: 0 } }).sort({ createdAt: -1 }).toArray();
   },
 
-  addDiscussion(email, authorName, authorRole, post) {
-    const data = readDb();
+  async addDiscussion(email, authorName, authorRole, post) {
+    const col = getDb().collection('discussions');
     const newPost = {
       id: `disc-${Date.now()}`,
       authorName,
@@ -241,36 +305,34 @@ const db = {
       replies: [],
       createdAt: new Date().toISOString()
     };
-    data.discussions.push(newPost);
-    writeDb(data);
-    return newPost;
+
+    await col.insertOne(newPost);
+    const { _id, ...postWithoutId } = newPost;
+    return postWithoutId;
   },
 
-  upvoteDiscussion(postId, email) {
-    const data = readDb();
-    const idx = data.discussions.findIndex(d => d.id === postId);
-    if (idx === -1) throw new Error("Post not found");
-
-    const post = data.discussions[idx];
+  async upvoteDiscussion(postId, email) {
+    const col = getDb().collection('discussions');
     const userEmail = email.toLowerCase();
-    const upvoteIdx = post.upvotedBy.indexOf(userEmail);
 
-    if (upvoteIdx === -1) {
-      post.upvotedBy.push(userEmail);
-      post.upvotes += 1;
-    } else {
-      post.upvotedBy.splice(upvoteIdx, 1);
-      post.upvotes -= 1;
-    }
-    
-    writeDb(data);
-    return post;
+    const post = await col.findOne({ id: postId });
+    if (!post) throw new Error('Post not found');
+
+    const hasVoted = post.upvotedBy.includes(userEmail);
+
+    const result = await col.findOneAndUpdate(
+      { id: postId },
+      hasVoted
+        ? { $pull: { upvotedBy: userEmail }, $inc: { upvotes: -1 } }
+        : { $push: { upvotedBy: userEmail }, $inc: { upvotes: 1 } },
+      { returnDocument: 'after', projection: { _id: 0 } }
+    );
+
+    return result;
   },
 
-  addReply(postId, replyAuthorName, replyContent) {
-    const data = readDb();
-    const idx = data.discussions.findIndex(d => d.id === postId);
-    if (idx === -1) throw new Error("Post not found");
+  async addReply(postId, replyAuthorName, replyContent) {
+    const col = getDb().collection('discussions');
 
     const reply = {
       authorName: replyAuthorName,
@@ -278,18 +340,23 @@ const db = {
       createdAt: new Date().toISOString()
     };
 
-    data.discussions[idx].replies.push(reply);
-    writeDb(data);
-    return data.discussions[idx];
+    const result = await col.findOneAndUpdate(
+      { id: postId },
+      { $push: { replies: reply } },
+      { returnDocument: 'after', projection: { _id: 0 } }
+    );
+
+    if (!result) throw new Error('Post not found');
+    return result;
   },
 
-  getScamAlerts() {
-    const data = readDb();
-    return data.scamAlerts;
+  async getScamAlerts() {
+    const col = getDb().collection('scamAlerts');
+    return col.find({}, { projection: { _id: 0 } }).sort({ dateReported: -1 }).toArray();
   },
 
-  addScamAlert(alert) {
-    const data = readDb();
+  async addScamAlert(alert) {
+    const col = getDb().collection('scamAlerts');
     const newAlert = {
       id: `alert-${Date.now()}`,
       title: alert.title,
@@ -297,10 +364,11 @@ const db = {
       platform: alert.platform,
       dateReported: new Date().toISOString()
     };
-    data.scamAlerts.unshift(newAlert); // Newest first
-    writeDb(data);
-    return newAlert;
+
+    await col.insertOne(newAlert);
+    const { _id, ...alertWithoutId } = newAlert;
+    return alertWithoutId;
   }
 };
 
-module.exports = db;
+module.exports = { connectDb, ...db };

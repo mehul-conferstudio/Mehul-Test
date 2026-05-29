@@ -2,6 +2,11 @@
    JOBGUARD MAIN STYLE SHEETS (GMAIL-STYLE LIGHT THEME & RESPONSIVE LAYOUT)
    ========================================================================== */
 
+/* Global Utility Classes */
+.hidden {
+  display: none !important;
+}
+
 /* Color Variables & Material Design Tokens */
 :root {
   --font-primary: 'Roboto', sans-serif;
@@ -117,7 +122,9 @@ body {
 }
 
 .welcome-screen.hidden {
+  display: flex !important; /* Override generic .hidden to keep animation */
   transform: translateY(-100%);
+  pointer-events: none;
 }
 
 /* Landing Page Layout */

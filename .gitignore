@@ -13,7 +13,7 @@ server.ps1
 # Node modules dependencies
 node_modules/
 
-# Local databases and config
+# Local databases and config (DEPRECATED: app now uses MongoDB Atlas for persistence)
 data/
 .env
 verify_smtp.js
