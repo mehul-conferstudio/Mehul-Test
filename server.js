@@ -124,7 +124,7 @@ async function sendOtpEmail(email, otp) {
     console.log(`[SMTP] Email sent successfully to ${email}`);
     return true;
   } catch (err) {
-    console.error('[SMTP] Failed to send OTP email:', err.message);
+    console.error('[SMTP] Failed to send OTP email details:', err);
     return false;
   }
 }
